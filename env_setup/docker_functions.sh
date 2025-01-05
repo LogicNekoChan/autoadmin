@@ -91,9 +91,6 @@ set_scheduled_backup() {
     # 确保 rclone 已安装
     check_rclone_installed || exit 1
 
-    # 选择 WebDAV 配置（仅在定时备份时需要）
-    choose_webdav_config || exit 1
-
     # 提供备份方式选择：手动或定时
     echo "请选择备份方式："
     echo "1. 手动备份"
@@ -149,6 +146,10 @@ set_scheduled_backup() {
 
         2)
             # 定时备份：选择频率并设置 cron 任务
+
+            # 选择 WebDAV 配置
+            choose_webdav_config || exit 1
+
             echo "请选择备份频率："
             echo "1. 每天备份"
             echo "2. 每周备份"
@@ -193,7 +194,7 @@ set_scheduled_backup() {
                 exit 1
             fi
 
-            # WebDAV 备份路径（仅在定时备份时需要）
+            # WebDAV 备份路径
             read -p "请输入 WebDAV 备份路径 (例如 /backup/): " webdav_path
 
             # 创建备份脚本
