@@ -133,6 +133,8 @@ set_scheduled_backup() {
             # 设置备份路径
             backup_path="/root/backup"
             echo "备份容器的映射目录/卷到 $backup_path ..."
+
+            # 创建备份目录
             mkdir -p "$backup_path"
 
             # 打包容器映射的目录和卷
