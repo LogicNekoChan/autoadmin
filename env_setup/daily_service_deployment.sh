@@ -42,8 +42,8 @@ deploy_service() {
             pause
             ;;
         "Alist - 文件管理工具")
-            MAPPED_DIR="/root/alist/"
-            mkdir -p "$MAPPED_DIR"
+            # 创建卷并映射
+            docker volume create alist_volume
 
             # 提示用户输入数据库连接信息
             echo "请输入数据库连接信息："
@@ -61,8 +61,8 @@ deploy_service() {
             read -p "数据库名称（默认：alist）： " DB_NAME
             DB_NAME=${DB_NAME:-alist}
 
-            # 启动 Alist 容器
-            docker run -d --name alist -p 5244:5244 -p 6800:6800 -v "$MAPPED_DIR:/opt/alist/data" xhofe/alist
+            # 启动 Alist 容器，使用卷映射
+            docker run -d --name alist -p 5244:5244 -p 6800:6800 -v alist_volume:/opt/alist/data xhofe/alist
             if [ $? -eq 0 ]; then
                 echo "Alist 服务已部署，访问地址：http://$(get_public_ip):5244"
             else
@@ -77,7 +77,7 @@ deploy_service() {
             done
 
             # 等待容器中的配置文件生成
-            CONFIG_FILE="$MAPPED_DIR/config.json"
+            CONFIG_FILE="/opt/alist/data/config.json"
             echo "等待配置文件生成..."
             while [ ! -f "$CONFIG_FILE" ]; do
                 echo "配置文件尚未生成，等待 10 秒..."
@@ -140,11 +140,15 @@ deploy_service() {
             read -p "数据库名称（默认：vaultwarden）： " DB_NAME
             DB_NAME=${DB_NAME:-vaultwarden}
 
+            # 创建卷并映射
+            docker volume create vaultwarden_volume
+
             # 创建 Vaultwarden 容器，并设置环境变量连接数据库
             docker run -d \
                 --name vaultwarden \
                 -p 86:80 \
                 -e DATABASE_URL="mysql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME" \
+                -v vaultwarden_volume:/data \
                 vaultwarden/server:latest
 
             # 检查容器是否启动成功
