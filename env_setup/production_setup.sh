@@ -14,11 +14,12 @@ get_public_ip() {
     echo "$public_ip"
 }
 
+# 部署 phpMyAdmin
 deploy_phpmyadmin() {
     echo "开始部署 phpMyAdmin..."
     read -p "请输入 MySQL 数据库的 IP 地址或主机名（例如 127.0.0.1 或 mydb.example.com）: " MYSQL_HOST
 
-    # 部署 phpMyAdmin 服务，不再通过环境变量设置上传大小
+    # 部署 phpMyAdmin 服务
     docker run -d --name phpmyadmin \
         -e PMA_HOST=$MYSQL_HOST \
         -e PMA_ARBITRARY=1 \
@@ -75,6 +76,8 @@ deploy_mysql() {
     echo "开始部署 MySQL..."
     read -p "请输入 MySQL root 密码: " MYSQL_ROOT_PASSWORD
     mkdir -p /root/mysql/data /root/mysql/conf
+
+    # 使用 Docker 部署 MySQL 服务
     docker run -d --name mysql \
         -p 3306:3306 \
         -e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
@@ -97,6 +100,8 @@ deploy_redis() {
     echo "开始部署 Redis..."
     read -p "请输入 Redis 密码: " REDIS_PASSWORD
     mkdir -p /root/redis
+
+    # 使用 Docker 部署 Redis 服务
     docker run -d --name redis \
         -p 6379:6379 \
         --restart always \
@@ -130,7 +135,7 @@ production_deployment_menu() {
         read -p "请选择一个选项 (1-5): " choice
 
         case $choice in
-            1) deploy_nginx ;;        # 部署 Nginx 服务
+            1) deploy_nginx ;;        # 部署 Nginx Proxy Manager
             2) deploy_mysql ;;        # 部署 MySQL 服务
             3) deploy_redis ;;        # 部署 Redis 服务
             4) deploy_phpmyadmin ;;   # 部署 phpMyAdmin 服务
@@ -140,8 +145,8 @@ production_deployment_menu() {
     done
 }
 
-
 # 暂停等待用户操作
 pause() {
     read -p "按 Enter 键继续..."
 }
+
