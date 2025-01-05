@@ -42,10 +42,9 @@ deploy_service() {
             echo "AdGuardHome 服务已部署，访问地址：http://$(get_public_ip):3000"
             pause
             ;;
-
+        
         "Alist - 文件管理工具")
             docker volume create alist_data
-            MAPPED_DIR="/root/alist/"
 
             # 提示用户输入数据库连接信息
             echo "请输入数据库连接信息："
@@ -63,8 +62,11 @@ deploy_service() {
             read -p "数据库名称（默认：alist）： " DB_NAME
             DB_NAME=${DB_NAME:-alist}
 
-            # 启动 Alist 容器
-            docker run -d --name alist -p 5244:5244 -p 6800:6800 -v alist_data:/opt/alist/data xhofe/alist
+            # 启动 Alist 容器，并将配置和数据映射到卷中
+            docker run -d --name alist -p 5244:5244 -p 6800:6800 \
+                -v alist_data:/opt/alist/data \
+                xhofe/alist
+
             if [ $? -eq 0 ]; then
                 echo "Alist 服务已部署，访问地址：http://$(get_public_ip):5244"
             else
@@ -79,7 +81,7 @@ deploy_service() {
             done
 
             # 等待容器中的配置文件生成
-            CONFIG_FILE="/root/alist/config.json"
+            CONFIG_FILE="/opt/alist/data/config.json"
             echo "等待配置文件生成..."
             while [ ! -f "$CONFIG_FILE" ]; do
                 echo "配置文件尚未生成，等待 10 秒..."
@@ -102,10 +104,9 @@ deploy_service() {
             echo "正在重启容器以应用新的配置..."
             docker restart alist
             echo "容器已重启，服务已更新。"
-
             pause
             ;;
-
+        
         "Calibre Web - 电子书管理工具")
             docker volume create calibreweb_data
             docker run -d --name calibre-web -p 8083:8083 -v calibreweb_data:/config lscr.io/linuxserver/calibre-web
@@ -116,21 +117,21 @@ deploy_service() {
             fi
             pause
             ;;
-
+        
         "qBittorrent - 下载工具")
             docker volume create qbittorrent_data
             docker run -d --name qbittorrent -p 8080:8080 -p 6881:6881 -v qbittorrent_data:/config lscr.io/linuxserver/qbittorrent
             echo "qBittorrent 服务已部署，访问地址：http://$(get_public_ip):8080"
             pause
             ;;
-
+        
         "Qinglong - 自动化脚本")
             docker volume create qinglong_data
             docker run -d --name qinglong -p 5700:5700 -v qinglong_data:/ql whyour/qinglong
             echo "Qinglong 服务已部署，访问地址：http://$(get_public_ip):5700"
             pause
             ;;
-
+        
         "Vaultwarden - 密码管理")
             docker volume create vaultwarden_data
             # 提示用户输入数据库连接信息
@@ -167,35 +168,35 @@ deploy_service() {
 
             pause
             ;;
-
+        
         "Photoprism - 照片管理工具")
             docker volume create photoprism_data
             docker run -d --name photoprism -p 2342:2342 -v photoprism_data:/photoprism photoprism/photoprism
             echo "Photoprism 服务已部署，访问地址：http://$(get_public_ip):2342"
             pause
             ;;
-
+        
         "Vocechat - 聊天工具")
             docker volume create vocechat_data
             docker run -d --name vocechat -p 3019:3000 -v vocechat_data:/data privoce/vocechat-server:latest
             echo "Vocechat 服务已部署，访问地址：http://$(get_public_ip):3019"
             pause
             ;;
-
+        
         "WordPress - 网站")
             docker volume create wordpress_data
             docker run -d --name wordpress -p 8089:80 -v wordpress_data:/var/www/html wordpress
             echo "WordPress 服务已部署，访问地址：http://$(get_public_ip):8089"
             pause
             ;;
-
+        
         "Synctv - 文件同步")
             docker volume create synctv_data
             docker run -d --name synctv -p 8092:8080 -v synctv_data:/config synctvorg/synctv:latest
             echo "Synctv 服务已部署，访问地址：http://$(get_public_ip):8092"
             pause
             ;;
-
+        
         "Portainer - 容器管理工具")
             docker volume create portainer_data
             docker run -d \
@@ -208,7 +209,7 @@ deploy_service() {
             echo "Portainer 服务已部署，访问地址：http://$(get_public_ip):9000"
             pause
             ;;
-
+        
         *)
             echo "未知服务，请重新选择。" >&2
             ;;
@@ -218,4 +219,14 @@ deploy_service() {
 # 显示服务列表
 show_services_list() {
     echo "==============================="
-   
+    echo "请选择要部署的服务："
+    for i in "${!services[@]}"; do
+        echo "$((i + 1)). ${services[$i]}"
+    done
+    echo "==============================="
+}
+
+# 让用户选择部署的服务
+show_services_list
+read -p "请输入服务编号： " service_choice
+deploy_service $service_choice
