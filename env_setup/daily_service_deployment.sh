@@ -37,13 +37,15 @@ deploy_service() {
 
     case "$service_name" in
         "AdGuardHome - 广告过滤器")
-            docker run -d --name adguardhome -p 53:53 -p 3000:3000 adguard/adguardhome
+            docker volume create adguardhome_data
+            docker run -d --name adguardhome -p 53:53 -p 3000:3000 -v adguardhome_data:/opt/adguardhome adguard/adguardhome
             echo "AdGuardHome 服务已部署，访问地址：http://$(get_public_ip):3000"
             pause
             ;;
+
         "Alist - 文件管理工具")
+            docker volume create alist_data
             MAPPED_DIR="/root/alist/"
-            mkdir -p "$MAPPED_DIR"
 
             # 提示用户输入数据库连接信息
             echo "请输入数据库连接信息："
@@ -62,7 +64,7 @@ deploy_service() {
             DB_NAME=${DB_NAME:-alist}
 
             # 启动 Alist 容器
-            docker run -d --name alist -p 5244:5244 -p 6800:6800 -v "$MAPPED_DIR:/opt/alist/data" xhofe/alist
+            docker run -d --name alist -p 5244:5244 -p 6800:6800 -v alist_data:/opt/alist/data xhofe/alist
             if [ $? -eq 0 ]; then
                 echo "Alist 服务已部署，访问地址：http://$(get_public_ip):5244"
             else
@@ -77,7 +79,7 @@ deploy_service() {
             done
 
             # 等待容器中的配置文件生成
-            CONFIG_FILE="$MAPPED_DIR/config.json"
+            CONFIG_FILE="/root/alist/config.json"
             echo "等待配置文件生成..."
             while [ ! -f "$CONFIG_FILE" ]; do
                 echo "配置文件尚未生成，等待 10 秒..."
@@ -103,8 +105,10 @@ deploy_service() {
 
             pause
             ;;
+
         "Calibre Web - 电子书管理工具")
-            docker run -d --name calibre-web -p 8083:8083 lscr.io/linuxserver/calibre-web
+            docker volume create calibreweb_data
+            docker run -d --name calibre-web -p 8083:8083 -v calibreweb_data:/config lscr.io/linuxserver/calibre-web
             if [ $? -eq 0 ]; then
                 echo "Calibre Web 服务已部署，访问地址：http://$(get_public_ip):8083"
             else
@@ -112,17 +116,23 @@ deploy_service() {
             fi
             pause
             ;;
+
         "qBittorrent - 下载工具")
-            docker run -d --name qbittorrent -p 8080:8080 -p 6881:6881 lscr.io/linuxserver/qbittorrent
+            docker volume create qbittorrent_data
+            docker run -d --name qbittorrent -p 8080:8080 -p 6881:6881 -v qbittorrent_data:/config lscr.io/linuxserver/qbittorrent
             echo "qBittorrent 服务已部署，访问地址：http://$(get_public_ip):8080"
             pause
             ;;
+
         "Qinglong - 自动化脚本")
-            docker run -d --name qinglong -p 5700:5700 whyour/qinglong
+            docker volume create qinglong_data
+            docker run -d --name qinglong -p 5700:5700 -v qinglong_data:/ql whyour/qinglong
             echo "Qinglong 服务已部署，访问地址：http://$(get_public_ip):5700"
             pause
             ;;
+
         "Vaultwarden - 密码管理")
+            docker volume create vaultwarden_data
             # 提示用户输入数据库连接信息
             echo "请输入数据库连接信息："
             read -p "数据库地址（默认：localhost）： " DB_HOST
@@ -145,6 +155,7 @@ deploy_service() {
                 --name vaultwarden \
                 -p 86:80 \
                 -e DATABASE_URL="mysql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME" \
+                -v vaultwarden_data:/data \
                 vaultwarden/server:latest
 
             # 检查容器是否启动成功
@@ -156,37 +167,48 @@ deploy_service() {
 
             pause
             ;;
+
         "Photoprism - 照片管理工具")
-            docker run -d --name photoprism -p 2342:2342 photoprism/photoprism
+            docker volume create photoprism_data
+            docker run -d --name photoprism -p 2342:2342 -v photoprism_data:/photoprism photoprism/photoprism
             echo "Photoprism 服务已部署，访问地址：http://$(get_public_ip):2342"
             pause
             ;;
+
         "Vocechat - 聊天工具")
-            docker run -d --name vocechat -p 3019:3000 privoce/vocechat-server:latest
+            docker volume create vocechat_data
+            docker run -d --name vocechat -p 3019:3000 -v vocechat_data:/data privoce/vocechat-server:latest
             echo "Vocechat 服务已部署，访问地址：http://$(get_public_ip):3019"
             pause
             ;;
+
         "WordPress - 网站")
-            docker run -d --name wordpress -p 8089:80 wordpress
+            docker volume create wordpress_data
+            docker run -d --name wordpress -p 8089:80 -v wordpress_data:/var/www/html wordpress
             echo "WordPress 服务已部署，访问地址：http://$(get_public_ip):8089"
             pause
             ;;
+
         "Synctv - 文件同步")
-            docker run -d --name synctv -p 8092:8080 synctvorg/synctv:latest
+            docker volume create synctv_data
+            docker run -d --name synctv -p 8092:8080 -v synctv_data:/config synctvorg/synctv:latest
             echo "Synctv 服务已部署，访问地址：http://$(get_public_ip):8092"
             pause
             ;;
+
         "Portainer - 容器管理工具")
+            docker volume create portainer_data
             docker run -d \
                 -p 9000:9000 \
                 -p 8000:8000 \
                 --restart always \
                 -v /var/run/docker.sock:/var/run/docker.sock \
-                -v /opt/docker/portainer-ce/data:/data \
+                -v portainer_data:/data \
                 --name portainer-ce portainer/portainer-ce
             echo "Portainer 服务已部署，访问地址：http://$(get_public_ip):9000"
             pause
             ;;
+
         *)
             echo "未知服务，请重新选择。" >&2
             ;;
@@ -196,33 +218,4 @@ deploy_service() {
 # 显示服务列表
 show_services_list() {
     echo "==============================="
-    echo "请选择要部署的服务："
-    for i in "${!services[@]}"; do
-        echo "$((i + 1)). ${services[i]}"
-    done
-    echo "==============================="
-}
-
-# 部署服务主函数
-daily_service_deployment_menu() {
-    while true; do
-        clear
-        show_services_list
-        read -p "请输入服务的序号 (或输入 0 退出): " service_choice
-
-        if [[ "$service_choice" == "0" ]]; then
-            echo "退出部署菜单"
-            break
-        elif [[ "$service_choice" =~ ^[0-9]+$ ]] && [ "$service_choice" -ge 1 ] && [ "$service_choice" -le ${#services[@]} ]; then
-            deploy_service "$service_choice"
-        else
-            echo "无效选择，请重新输入"
-        fi
-        sleep 2
-    done
-}
-
-# 暂停等待用户按键
-pause() {
-    read -p "按 Enter 键继续..."
-}
+   
