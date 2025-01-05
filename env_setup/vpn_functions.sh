@@ -4,10 +4,14 @@
 
 deploy_x_ui() {
     echo "正在部署 x-ui..."
-    
+
     # 创建 x-ui 的工作目录
     XUI_DIR="/root/xui"
     mkdir -p "$XUI_DIR/db" "$XUI_DIR/cert"
+
+    # 创建 Docker 卷挂载（而非使用主机路径）
+    docker volume create xui_db
+    docker volume create xui_cert
 
     # 创建 docker-compose.yml 配置文件
     cat > "$XUI_DIR/docker-compose.yml" <<EOF
@@ -17,8 +21,8 @@ services:
     image: enwaiax/x-ui:alpha-zh
     container_name: xui
     volumes:
-      - $XUI_DIR/db:/etc/x-ui
-      - $XUI_DIR/cert:/root/cert
+      - xui_db:/etc/x-ui
+      - xui_cert:/root/cert
     restart: unless-stopped
     network_mode: host
 EOF
@@ -47,7 +51,6 @@ EOF
     pause
 }
 
-
 # 科学上网功能：xboard 一键部署
 deploy_xboard() {
     echo "正在部署 xboard... 请稍候..."
@@ -62,6 +65,9 @@ deploy_xboard() {
     }
     cd /root/xboard || { echo "无法切换到 /root/xboard 目录"; exit 1; }
     echo "Xboard Docker Compose 文件获取完成"
+
+    # 创建 Docker 卷挂载（而非使用主机路径）
+    docker volume create xboard_db
 
     # 执行数据库安装命令
     echo "正在执行数据库安装命令..."
@@ -96,6 +102,9 @@ deploy_xrayr() {
     mkdir -p "$XRAYR_DIR"
     cd "$XRAYR_DIR" || { echo "无法切换到 $XRAYR_DIR 目录"; exit 1; }
     git clone https://github.com/XrayR-project/XrayR-release . || { echo "克隆 XrayR 代码失败"; exit 1; }
+
+    # 创建 Docker 卷挂载（而非使用主机路径）
+    docker volume create xrayr_data
 
     # 配置环境变量（可选，根据您的需要）
     # 例如：设置配置文件路径
