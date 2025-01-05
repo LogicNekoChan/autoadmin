@@ -57,20 +57,22 @@ manage_docker_container() {
             echo "正在停止容器 $container_name (ID: $container_id)..."
             docker stop "$container_id" || { echo "停止容器失败。"; return; }
 
-            # 删除容器挂载的目录
-            echo "正在删除容器 $container_name (ID: $container_id)..."
-            echo "正在列出容器的挂载目录..."
-            mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind") | .Source')
-            
-            # 删除挂载的目录
-            for mount in $mounts; do
-                if [ -d "$mount" ]; then
-                    echo "正在删除挂载目录：$mount"
-                    rm -rf "$mount" || echo "删除目录 $mount 失败。"
-                fi
-            done
+            # 删除容器挂载的卷
+            echo "正在列出容器的卷挂载..."
+            container_volumes=$(docker inspect --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}{{end}}{{end}}' "$container_id")
+
+            if [ -z "$container_volumes" ]; then
+                echo "该容器没有挂载卷。"
+            else
+                for volume in $container_volumes; do
+                    # 删除挂载卷
+                    echo "正在删除卷：$volume"
+                    docker volume rm "$volume" || echo "删除卷 $volume 失败。"
+                done
+            fi
 
             # 删除容器
+            echo "正在删除容器 $container_name (ID: $container_id)..."
             docker rm "$container_id" || echo "删除容器失败。"
             ;;
         *)
