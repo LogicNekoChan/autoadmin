@@ -20,6 +20,7 @@ install_nps() {
 
     # 设置 NPS 项目路径
     NPS_DIR="/root/nps"
+    NPS_DATA_VOLUME="nps_data"  # 映射的卷名
 
     # 检查 Docker 是否已安装
     command -v docker >/dev/null 2>&1 || { echo "请先安装 Docker"; exit 1; }
@@ -62,7 +63,7 @@ install_nps() {
     sed -i "s/^auth_crypt_key=.*$/auth_crypt_key=${auth_crypt_key}/" conf/nps.conf
 
     # 运行 Docker 容器
-    docker run -d --name nps --net=host -v "$NPS_DIR/conf":/conf --restart=always yisier1/nps || { echo "启动 NPS 容器失败"; exit 1; }
+    docker run -d --name nps --net=host -v "$NPS_DIR/conf":/conf -v "$NPS_DATA_VOLUME:/data" --restart=always yisier1/nps || { echo "启动 NPS 容器失败"; exit 1; }
 
     # 显示访问地址并提示用户按 Enter 键退出
     echo "NPS 容器已启动，请访问 http://${web_ip}:${http_proxy_port} 进行管理"
@@ -87,7 +88,7 @@ install_wireguard_easy() {
     WG_PORT=51820
 
     # 创建 WireGuard-Easy 配置目录
-    mkdir -p /root/wireguard
+    WGEASY_DATA_VOLUME="wireguard_data"  # 映射的卷名
 
     # 创建 Docker Compose 配置文件
     cat > /root/wireguard/docker-compose.yml <<EOF
@@ -102,6 +103,7 @@ services:
       - WG_PORT=${WG_PORT}
     volumes:
       - /root/wireguard:/etc/wireguard
+      - ${WGEASY_DATA_VOLUME}:/data  # 映射卷
     ports:
       - 51822:51820/udp
       - 51821:51821/tcp
@@ -153,3 +155,4 @@ port_forwarding_menu() {
 pause() {
     read -p "按 Enter 键继续..."
 }
+
