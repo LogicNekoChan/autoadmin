@@ -432,13 +432,15 @@ restore_container_from_backup() {
     done
 
     # 恢复容器的卷和数据
-    echo "正在恢复容器的卷和数据..."
+    echo "正在恢复容器的数据卷..."
 
-    # 恢复卷数据
+    # 恢复数据卷数据
     for volume in $volumes; do
+        # 获取数据卷的挂载路径
         volume_path=$(docker volume inspect --format '{{.Mountpoint}}' "$volume")
         if [ -d "$volume_path" ]; then
             echo "恢复卷 $volume 数据到目录 $volume_path"
+            # 解压备份文件到卷的挂载路径
             tar -xvzf "$selected_backup" -C "$volume_path" || {
                 echo "恢复卷 $volume 数据失败，退出。"
                 exit 1
@@ -448,7 +450,7 @@ restore_container_from_backup() {
         fi
     done
 
-    # 恢复挂载目录数据
+    # 恢复容器的挂载目录数据
     for mount in $mounts; do
         if [ -d "$mount" ]; then
             echo "恢复挂载目录 $mount"
