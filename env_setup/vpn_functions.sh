@@ -17,10 +17,13 @@ services:
     image: enwaiax/x-ui:alpha-zh
     container_name: xui
     volumes:
-      - $XUI_DIR/db:/etc/x-ui
-      - $XUI_DIR/cert:/root/cert
+      - xui_db:/etc/x-ui
+      - xui_cert:/root/cert
     restart: unless-stopped
     network_mode: host
+volumes:
+  xui_db:
+  xui_cert:
 EOF
 
     # 检查是否已经安装 Docker 和 Docker Compose
@@ -97,8 +100,8 @@ deploy_xrayr() {
     cd "$XRAYR_DIR" || { echo "无法切换到 $XRAYR_DIR 目录"; exit 1; }
     git clone https://github.com/XrayR-project/XrayR-release . || { echo "克隆 XrayR 代码失败"; exit 1; }
 
-    # 配置环境变量（可选，根据您的需要）
-    # 例如：设置配置文件路径
+    # 配置环境变量（可选，根据您的需要） 
+    # 例如：设置配置文件路径 
     # export XRAYR_CONFIG=/etc/xray/config.json
 
     # 启动 XrayR
