@@ -288,7 +288,6 @@ backup_container_to_webdav() {
     done
 }
 
-# 恢复容器
 restore_container_from_backup() {
     echo "正在列出备份文件..."
 
@@ -338,29 +337,50 @@ restore_container_from_backup() {
     container_name=$(docker inspect --format '{{.Name}}' "$container_id" | sed 's/^\///')
     echo "您选择的容器是：$container_name (ID: $container_id)"
 
-    # 停止并删除容器挂载目录
+    # 获取容器的卷挂载信息
+    echo "正在列出容器的卷挂载..."
+    container_volumes=$(docker inspect --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}:{{.Destination}}{{end}}{{end}}' "$container_id")
+
+    if [ -z "$container_volumes" ]; then
+        echo "该容器没有挂载卷。"
+        exit 1
+    fi
+
+    echo "容器卷挂载信息："
+    for volume in $container_volumes; do
+        volume_name=$(echo "$volume" | cut -d: -f1)
+        volume_mount_path=$(echo "$volume" | cut -d: -f2)
+        echo "卷名: $volume_name, 挂载路径: $volume_mount_path"
+    done
+
+    read -p "请输入要恢复数据的卷名: " volume_name
+    if [ -z "$volume_name" ]; then
+        echo "无效的卷名，请重试。"
+        exit 1
+    fi
+
+    # 获取该卷的路径
+    volume_data_path="/var/lib/docker/volumes/$volume_name/_data"
+    if [ ! -d "$volume_data_path" ]; then
+        echo "卷 $volume_name 不存在或路径错误。"
+        exit 1
+    fi
+
+    # 停止容器
     echo "正在停止容器 $container_name..."
     docker stop "$container_id" || exit 1
 
-    echo "正在删除容器挂载目录..."
-    mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind") | .Source')
-    for mount in $mounts; do
-        if [ -d "$mount" ]; then
-            rm -rf "$mount"
-            echo "删除目录：$mount"
-        fi
-    done
+    # 解压备份文件到卷的 _data 目录
+    echo "正在解压备份文件 $selected_backup 到卷 $volume_name..."
+    tar -xvzf "$selected_backup" -C "$volume_data_path" || exit 1
 
-    # 恢复容器
+    # 启动容器
     echo "正在恢复容器 $container_name..."
     docker start "$container_id" || exit 1
 
-    # 解压备份文件
-    echo "正在解压备份文件 $selected_backup..."
-    tar -xvzf "$selected_backup" -C "/var/lib/docker/volumes/$container_name/_data" || exit 1
-
     echo "恢复完成，容器已启动并恢复。"
 }
+
 
 # 主菜单
 show_docker_menu() {
