@@ -56,11 +56,13 @@ deploy_phpmyadmin() {
 # 部署 Nginx Proxy Manager
 deploy_nginx() {
     echo "开始部署 Nginx Proxy Manager..."
-    mkdir -p /root/data /root/letsencrypt
+    docker volume create nginx_data
+    docker volume create letsencrypt_data
+
     docker run -d --name nginx \
         --network host \
-        -v /root/data:/data \
-        -v /root/letsencrypt:/etc/letsencrypt \
+        -v nginx_data:/data \
+        -v letsencrypt_data:/etc/letsencrypt \
         --restart unless-stopped jc21/nginx-proxy-manager || { echo "Nginx 部署失败"; exit 1; }
 
     # 获取本机公网 IP
@@ -74,12 +76,14 @@ deploy_nginx() {
 deploy_mysql() {
     echo "开始部署 MySQL..."
     read -p "请输入 MySQL root 密码: " MYSQL_ROOT_PASSWORD
-    mkdir -p /root/mysql/data /root/mysql/conf
+    docker volume create mysql_data
+    docker volume create mysql_conf
+
     docker run -d --name mysql \
         -p 3306:3306 \
         -e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
-        -v /root/mysql/data:/var/lib/mysql \
-        -v /root/mysql/conf:/etc/mysql/conf.d \
+        -v mysql_data:/var/lib/mysql \
+        -v mysql_conf:/etc/mysql/conf.d \
         --restart unless-stopped mysql:5.7 || { echo "MySQL 部署失败"; exit 1; }
 
     # 获取本机公网 IP
@@ -96,11 +100,12 @@ deploy_mysql() {
 deploy_redis() {
     echo "开始部署 Redis..."
     read -p "请输入 Redis 密码: " REDIS_PASSWORD
-    mkdir -p /root/redis
+    docker volume create redis_data
+
     docker run -d --name redis \
         -p 6379:6379 \
         --restart always \
-        -v /root/redis:/data \
+        -v redis_data:/data \
         redis:latest \
         redis-server --save 60 1 --loglevel warning --requirepass "$REDIS_PASSWORD" || { echo "Redis 部署失败"; exit 1; }
 
@@ -139,7 +144,6 @@ production_deployment_menu() {
         esac
     done
 }
-
 
 # 暂停等待用户操作
 pause() {
