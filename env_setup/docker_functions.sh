@@ -345,12 +345,16 @@ restore_container_from_backup() {
     container_name=$(docker inspect --format '{{.Name}}' "$container_id" | sed 's/^\///')
     echo "您选择的容器是：$container_name (ID: $container_id)"
 
-    # 停止并删除容器挂载目录
+    # 停止容器并备份数据
     echo "正在停止容器 $container_name..."
     docker stop "$container_id" || exit 1
 
-    echo "正在删除容器挂载目录..."
+    # 获取挂载的目录和卷
+    echo "正在列出容器的挂载目录和卷..."
     mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind") | .Source')
+    volumes=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="volume") | .Name')
+
+    # 删除挂载的目录
     for mount in $mounts; do
         if [ -d "$mount" ]; then
             rm -rf "$mount"
@@ -358,13 +362,36 @@ restore_container_from_backup() {
         fi
     done
 
-    # 恢复容器
-    echo "正在恢复容器 $container_name..."
-    docker start "$container_id" || exit 1
+    # 删除挂载的卷
+    for volume in $volumes; do
+        echo "删除卷：$volume"
+        docker volume rm "$volume" || echo "删除卷 $volume 失败。"
+    done
 
-    # 解压备份文件
-    echo "正在解压备份文件 $selected_backup..."
-    tar -xvzf "$selected_backup" -C "/var/lib/docker/volumes/$container_name/_data" || exit 1
+    # 恢复容器的卷和数据
+    echo "正在恢复容器的卷和数据..."
+    # 解压备份文件到卷目录
+    for volume in $volumes; do
+        volume_path=$(docker volume inspect --format '{{.Mountpoint}}' "$volume")
+        if [ -d "$volume_path" ]; then
+            echo "恢复卷 $volume 数据到目录 $volume_path"
+            tar -xvzf "$selected_backup" -C "$volume_path" || exit 1
+        else
+            echo "卷 $volume 的路径不存在，跳过恢复该卷。"
+        fi
+    done
+
+    # 恢复容器的挂载目录
+    for mount in $mounts; do
+        if [ -d "$mount" ]; then
+            echo "恢复挂载目录 $mount"
+            tar -xvzf "$selected_backup" -C "$mount" || exit 1
+        fi
+    done
+
+    # 启动容器
+    echo "正在启动容器 $container_name..."
+    docker start "$container_id" || exit 1
 
     echo "恢复完成，容器已启动并恢复。"
 }
