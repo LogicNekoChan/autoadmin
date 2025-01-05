@@ -122,23 +122,23 @@ set_scheduled_backup() {
 
             container_id="${containers[$((container_index - 1))]}"
 
-            # 获取容器的挂载目录
-            echo "正在列出容器的挂载目录..."
-            mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind") | .Source')
+            # 获取容器的挂载目录和卷
+            echo "正在列出容器的挂载信息..."
+            mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind" or .Type=="volume") | .Source')
             if [ -z "$mounts" ]; then
-                echo "容器没有映射的目录"
+                echo "容器没有映射的目录或卷"
                 exit 1
             fi
 
             # 设置备份路径
             backup_path="/root/backup"
-            echo "备份容器的映射目录到 $backup_path ..."
+            echo "备份容器的映射目录/卷到 $backup_path ..."
             mkdir -p "$backup_path"
 
-            # 打包容器映射的目录
+            # 打包容器映射的目录和卷
             backup_file="$backup_path/container_backup_$(date +%Y%m%d%H%M%S).tar.gz"
             tar -czf "$backup_file" $mounts || {
-                echo "备份失败，请检查容器映射的目录。"
+                echo "备份失败，请检查容器映射的目录或卷。"
                 exit 1
             }
             echo "备份完成，文件存储在 $backup_file"
@@ -186,11 +186,11 @@ set_scheduled_backup() {
 
             container_id="${containers[$((container_index - 1))]}"
 
-            # 获取容器的挂载目录
-            echo "正在列出容器的挂载目录..."
-            mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind") | .Source')
+            # 获取容器的挂载目录和卷
+            echo "正在列出容器的挂载信息..."
+            mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind" or .Type=="volume") | .Source')
             if [ -z "$mounts" ]; then
-                echo "容器没有映射的目录"
+                echo "容器没有映射的目录或卷"
                 exit 1
             fi
 
@@ -201,7 +201,7 @@ set_scheduled_backup() {
             backup_script="/root/backup_container_$container_id.sh"
             cat > "$backup_script" <<EOL
 #!/bin/bash
-# 备份容器的挂载目录到 WebDAV
+# 备份容器的挂载目录/卷到 WebDAV
 rclone copy "$mounts" "$WEBDAV_REMOTE:$webdav_path" --progress || {
     echo "备份失败，请检查网络或配置。"
     exit 1
