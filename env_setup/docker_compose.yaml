@@ -12,7 +12,7 @@ services:
       - "9443:9443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /root/portainer:/data
+      - portainer_data:/data
 
   # Minecraft 服务器
   mcserver:
@@ -23,7 +23,7 @@ services:
       - MEMORYSIZE=1G
       - PAPERMC_FLAGS=
     volumes:
-      - /root/mcserver:/data:rw
+      - mcserver_data:/data:rw
     ports:
       - 25565:25565
     tty: true
@@ -36,7 +36,7 @@ services:
     ports:
       - "8090:80"
     volumes:
-      - /root/filebroswer:/data
+      - filebrowser_data:/data
     environment:
       - DATA_DIR=/
       - TZ=Asia/Shanghai  # 设置时区
@@ -59,8 +59,8 @@ services:
     container_name: adguardhome
     restart: unless-stopped
     volumes:
-      - /root/adguardhome/work:/opt/adguardhome/work
-      - /root/adguardhome/conf:/opt/adguardhome/conf
+      - adguardhome_work:/opt/adguardhome/work
+      - adguardhome_conf:/opt/adguardhome/conf
     ports:
       - "53:53/tcp"
       - "53:53/udp"
@@ -78,7 +78,8 @@ services:
       - PUID=0
       - PGID=0
     volumes:
-      - /etc/alist:/opt/alist/data
+      - alist_data:/opt/alist/data
+      - alist_config:/etc/alist
 
   # aaPanel - 面板管理工具
   aapanel:
@@ -87,9 +88,9 @@ services:
     network_mode: host
     restart: unless-stopped
     volumes:
-      - /root/website_data:/www/wwwroot
-      - /root/mysql_data:/www/server/data
-      - /root/vhost:/www/server/panel/vhost
+      - website_data:/www/wwwroot
+      - mysql_data:/www/server/data
+      - vhost:/www/server/panel/vhost
 
   # Calibre Web - 电子书管理工具
   calibre-web:
@@ -100,8 +101,8 @@ services:
       - PGID=1000
       - TZ=Etc/UTC
     volumes:
-      - /root/calibre-web/data:/config
-      - /root/calibre-web/calibre/library:/books
+      - calibre_web_data:/config
+      - calibre_library:/books
     ports:
       - 8083:8083
     restart: unless-stopped
@@ -113,7 +114,7 @@ services:
     ports:
       - 89:80
     volumes:
-      - /root/kodbox:/var/www/html
+      - kodbox_data:/var/www/html
     restart: unless-stopped
 
   # Nginx Proxy Manager
@@ -123,8 +124,8 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - /root/data:/data
-      - /root/letsencrypt:/etc/letsencrypt
+      - nginx_data:/data
+      - letsencrypt:/etc/letsencrypt
 
   # qBittorrent 下载工具
   qbittorrent:
@@ -137,8 +138,8 @@ services:
       - WEBUI_PORT=8080
       - TORRENTING_PORT=6881
     volumes:
-      - /root/qbittorrent/appdata:/config
-      - /root/qbittorrent/downloads:/downloads
+      - qbittorrent_config:/config
+      - qbittorrent_downloads:/downloads
     ports:
       - 8080:8080
       - 6881:6881
@@ -154,7 +155,7 @@ services:
     ports:
       - 5700:5700
     volumes:
-      - /root/ql/data:/ql/data
+      - qinglong_data:/ql/data
 
   # Vaultwarden - 密码管理
   vaultwarden:
@@ -162,7 +163,7 @@ services:
     container_name: vaultwarden
     restart: unless-stopped
     volumes:
-      - /root/vw-data:/data
+      - vaultwarden_data:/data
     ports:
       - 86:80
     environment:
@@ -188,7 +189,7 @@ services:
       - PASSWORD=foobar123
       - WG_PORT=51820
     volumes:
-      - /root/wireguard:/etc/wireguard
+      - wireguard:/etc/wireguard
     ports:
       - 51822:51820/udp
       - 51821:51821/tcp
@@ -209,7 +210,7 @@ services:
     environment:
       - PHOTOPRISM_ADMIN_PASSWORD=photoprism
     volumes:
-      - /root/photoprism:/photoprism
+      - photoprism_data:/photoprism
     restart: unless-stopped
 
   # Vocechat - 聊天工具
@@ -227,8 +228,8 @@ services:
     image: enwaiax/x-ui:alpha-zh
     container_name: xui
     volumes:
-      - /root/xui/db/:/etc/x-ui/
-      - /root/xui/cert/:/root/cert/
+      - xui_db:/etc/x-ui/
+      - xui_cert:/root/cert/
     restart: unless-stopped
     network_mode: host
 
@@ -258,7 +259,7 @@ services:
     ports:
       - "8095:80"
     volumes:
-      - /root/nextcloud:/home/wwwroot/nextcloud
+      - nextcloud:/home/wwwroot/nextcloud
 
   # Synctv - 文件同步
   synctv:
@@ -289,4 +290,31 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - /root/redis:/data
+      - redis_data:/data
+
+volumes:
+  portainer_data:
+  mcserver_data:
+  filebrowser_data:
+  adguardhome_work:
+  adguardhome_conf:
+  alist_data:
+  alist_config:
+  website_data:
+  mysql_data:
+  calibre_web_data:
+  calibre_library:
+  kodbox_data:
+  nginx_data:
+  letsencrypt:
+  qbittorrent_config:
+  qbittorrent_downloads:
+  qinglong_data:
+  vaultwarden_data:
+  wireguard:
+  photoprism_data:
+  xui_db:
+  xui_cert:
+  nextcloud:
+  redis_data:
+  synctv_data:
