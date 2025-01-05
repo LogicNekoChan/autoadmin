@@ -39,9 +39,9 @@ services:
       - filebrowser_data:/data
     environment:
       - DATA_DIR=/
-      - TZ=Asia/Shanghai  # 设置时区
-      - USERNAME=admin    # 设置登录用户名
-      - PASSWORD=admin123 # 设置登录密码
+      - TZ=Asia/Shanghai
+      - USERNAME=admin
+      - PASSWORD=admin123
 
   # ChatGPT Web
   chatgpt-web:
@@ -51,7 +51,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - ACCESS_TOKEN=your_access_token  # 替换为您的 Access Token
+      - ACCESS_TOKEN=your_access_token
 
   # AdGuardHome 广告过滤器
   adguardhome:
@@ -317,4 +317,3 @@ volumes:
   xui_cert:
   nextcloud_data:
   redis_data:
-
