@@ -358,7 +358,6 @@ backup_container_to_webdav() {
     done
 }
 
-# 恢复容器
 restore_container_from_backup() {
     BACKUP_DIR="/root/backup"  # 备份路径
 
@@ -433,20 +432,25 @@ restore_container_from_backup() {
         docker volume rm "$volume" || echo "删除卷 $volume 失败。"
     done
 
-    # 恢复容器的卷和数据
+    # 恢复容器的数据卷
     echo "正在恢复容器的数据卷..."
 
-    # 恢复数据卷数据
+    # 遍历卷进行恢复
     for volume in $volumes; do
-        # 获取数据卷的挂载路径
         volume_path=$(docker volume inspect --format '{{.Mountpoint}}' "$volume")
         if [ -d "$volume_path" ]; then
-            echo "恢复卷 $volume 数据到目录 $volume_path"
-            # 解压备份文件到卷的挂载路径
-            tar -xvzf "$selected_backup" -C "$volume_path" || {
-                echo "恢复卷 $volume 数据失败，退出。"
-                exit 1
-            }
+            # 检查备份中是否有与卷名对应的子目录
+            volume_dir_in_backup=$(tar -tzf "$selected_backup" | grep -oP "^${volume}/" | head -n 1)
+            if [ -n "$volume_dir_in_backup" ]; then
+                echo "恢复卷 $volume 数据到目录 $volume_path"
+                # 解压对应卷的备份文件到目标卷路径
+                tar -xvzf "$selected_backup" --strip-components=1 -C "$volume_path" "$volume_dir_in_backup" || {
+                    echo "恢复卷 $volume 数据失败，退出。"
+                    exit 1
+                }
+            else
+                echo "备份文件中没有找到卷 $volume 对应的数据，跳过恢复该卷。"
+            fi
         else
             echo "卷 $volume 的路径不存在，跳过恢复该卷。"
         fi
@@ -456,10 +460,17 @@ restore_container_from_backup() {
     for mount in $mounts; do
         if [ -d "$mount" ]; then
             echo "恢复挂载目录 $mount"
-            tar -xvzf "$selected_backup" -C "$mount" || {
-                echo "恢复挂载目录 $mount 数据失败，退出。"
-                exit 1
-            }
+            # 检查备份中是否有与挂载路径对应的子目录
+            mount_dir_in_backup=$(tar -tzf "$selected_backup" | grep -oP "^$(basename "$mount")/" | head -n 1)
+            if [ -n "$mount_dir_in_backup" ]; then
+                # 解压备份文件到挂载目录
+                tar -xvzf "$selected_backup" --strip-components=1 -C "$mount" "$mount_dir_in_backup" || {
+                    echo "恢复挂载目录 $mount 数据失败，退出。"
+                    exit 1
+                }
+            else
+                echo "备份文件中没有找到挂载目录 $mount 对应的数据，跳过恢复该目录。"
+            fi
         fi
     done
 
