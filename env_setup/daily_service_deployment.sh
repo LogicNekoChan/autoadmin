@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# 获取公有IP地址
 get_public_ip() {
     # 尝试获取IPv4地址
     public_ip=$(curl -s4 ifconfig.me)
@@ -27,6 +26,16 @@ services=(
     "Synctv - 文件同步"
     "Portainer - 容器管理工具"
 )
+
+# 显示服务列表
+show_services_list() {
+    echo "==============================="
+    echo "请选择要部署的服务："
+    for i in "${!services[@]}"; do
+        echo "$((i + 1)). ${services[$i]}"
+    done
+    echo "==============================="
+}
 
 # 部署服务函数
 deploy_service() {
@@ -217,17 +226,14 @@ deploy_service() {
     esac
 }
 
-# 显示服务列表
-show_services_list() {
-    echo "==============================="
-    echo "请选择要部署的服务："
-    for i in "${!services[@]}"; do
-        echo "$((i + 1)). ${services[$i]}"
-    done
-    echo "==============================="
-}
-
 # 让用户选择部署的服务
-show_services_list
-read -p "请输入服务编号： " service_choice
-deploy_service $service_choice
+while true; do
+    show_services_list
+    read -p "请输入服务编号： " service_choice
+    if [[ "$service_choice" =~ ^[1-9]$ ]]; then
+        deploy_service $service_choice
+    else
+        echo "无效输入，请输入有效的服务编号。"
+    fi
+done
+
