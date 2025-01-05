@@ -87,7 +87,6 @@ manage_docker_container() {
     pause
 }
 
-# 设置定期备份
 set_scheduled_backup() {
     # 确保 rclone 已安装
     check_rclone_installed || exit 1
@@ -95,57 +94,111 @@ set_scheduled_backup() {
     # 选择 WebDAV 配置
     choose_webdav_config || exit 1
 
-    # 获取要备份的容器信息
-    echo "请选择要设置定期备份的容器："
-    containers=($(docker ps -a -q))
-    if [ ${#containers[@]} -eq 0 ]; then
-        echo "没有找到任何容器。"
-        exit 1
-    fi
+    # 提供备份方式选择：手动或定时
+    echo "请选择备份方式："
+    echo "1. 手动备份"
+    echo "2. 定时备份"
+    read -p "请输入备份方式 (1-2): " backup_method
 
-    # 列出所有容器
-    for i in "${!containers[@]}"; do
-        container_id="${containers[i]}"
-        container_name=$(docker inspect --format '{{.Name}}' "$container_id" | sed 's/^\///')  # 获取容器名称
-        echo "$((i + 1)). ID: $container_id 名称: $container_name"
-    done
+    case $backup_method in
+        1)
+            # 手动备份：选择容器及映射卷
+            echo "请选择要备份的容器："
+            containers=($(docker ps -a -q))
+            if [ ${#containers[@]} -eq 0 ]; then
+                echo "没有找到任何容器。"
+                exit 1
+            fi
 
-    read -p "请输入要设置定期备份的容器序号: " container_index
-    if ! [[ "$container_index" =~ ^[0-9]+$ ]] || [ "$container_index" -le 0 ] || [ "$container_index" -gt ${#containers[@]} ]; then
-        echo "无效的选择，请重试。"
-        exit 1
-    fi
+            # 列出所有容器
+            for i in "${!containers[@]}"; do
+                container_id="${containers[i]}"
+                container_name=$(docker inspect --format '{{.Name}}' "$container_id" | sed 's/^\///')  # 获取容器名称
+                echo "$((i + 1)). ID: $container_id 名称: $container_name"
+            done
 
-    container_id="${containers[$((container_index - 1))]}"
+            read -p "请输入要备份的容器序号: " container_index
+            if ! [[ "$container_index" =~ ^[0-9]+$ ]] || [ "$container_index" -le 0 ] || [ "$container_index" -gt ${#containers[@]} ]; then
+                echo "无效的选择，请重试。"
+                exit 1
+            fi
 
-    # 获取容器的挂载目录
-    echo "正在列出容器的挂载目录..."
-    mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind") | .Source')
-    if [ -z "$mounts" ]; then
-        echo "容器没有映射的目录"
-        exit 1
-    fi
+            container_id="${containers[$((container_index - 1))]}"
 
-    # WebDAV 备份路径
-    read -p "请输入 WebDAV 备份路径 (例如 /backup/): " webdav_path
+            # 获取容器的挂载目录
+            echo "正在列出容器的挂载目录..."
+            mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind") | .Source')
+            if [ -z "$mounts" ]; then
+                echo "容器没有映射的目录"
+                exit 1
+            fi
 
-    # 配置 cron 任务
-    echo "请选择备份频率："
-    echo "1. 每天备份"
-    echo "2. 每周备份"
-    echo "3. 每月备份"
-    read -p "请输入频率 (1-3): " frequency
+            # 设置备份路径
+            backup_path="/root/backup"
+            echo "备份容器的映射目录到 $backup_path ..."
+            mkdir -p "$backup_path"
 
-    case $frequency in
-        1) cron_schedule="0 0 * * *" ;;   # 每天备份
-        2) cron_schedule="0 0 * * 0" ;;   # 每周备份
-        3) cron_schedule="0 0 1 * *" ;;   # 每月备份
-        *) echo "无效的选择。"; exit 1 ;;
-    esac
+            # 打包容器映射的目录
+            backup_file="$backup_path/container_backup_$(date +%Y%m%d%H%M%S).tar.gz"
+            tar -czf "$backup_file" $mounts || {
+                echo "备份失败，请检查容器映射的目录。"
+                exit 1
+            }
+            echo "备份完成，文件存储在 $backup_file"
+            ;;
+        
+        2)
+            # 定时备份：选择频率并设置 cron 任务
+            echo "请选择备份频率："
+            echo "1. 每天备份"
+            echo "2. 每周备份"
+            echo "3. 每月备份"
+            read -p "请输入频率 (1-3): " frequency
 
-    # 创建备份脚本
-    backup_script="/root/backup_container_$container_id.sh"
-    cat > "$backup_script" <<EOL
+            case $frequency in
+                1) cron_schedule="0 0 * * *" ;;   # 每天备份
+                2) cron_schedule="0 0 * * 0" ;;   # 每周备份
+                3) cron_schedule="0 0 1 * *" ;;   # 每月备份
+                *) echo "无效的选择。"; exit 1 ;;
+            esac
+
+            # 选择备份容器
+            echo "请选择要定期备份的容器："
+            containers=($(docker ps -a -q))
+            if [ ${#containers[@]} -eq 0 ]; then
+                echo "没有找到任何容器。"
+                exit 1
+            fi
+
+            # 列出所有容器
+            for i in "${!containers[@]}"; do
+                container_id="${containers[i]}"
+                container_name=$(docker inspect --format '{{.Name}}' "$container_id" | sed 's/^\///')  # 获取容器名称
+                echo "$((i + 1)). ID: $container_id 名称: $container_name"
+            done
+
+            read -p "请输入要设置定期备份的容器序号: " container_index
+            if ! [[ "$container_index" =~ ^[0-9]+$ ]] || [ "$container_index" -le 0 ] || [ "$container_index" -gt ${#containers[@]} ]; then
+                echo "无效的选择，请重试。"
+                exit 1
+            fi
+
+            container_id="${containers[$((container_index - 1))]}"
+
+            # 获取容器的挂载目录
+            echo "正在列出容器的挂载目录..."
+            mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind") | .Source')
+            if [ -z "$mounts" ]; then
+                echo "容器没有映射的目录"
+                exit 1
+            fi
+
+            # WebDAV 备份路径
+            read -p "请输入 WebDAV 备份路径 (例如 /backup/): " webdav_path
+
+            # 创建备份脚本
+            backup_script="/root/backup_container_$container_id.sh"
+            cat > "$backup_script" <<EOL
 #!/bin/bash
 # 备份容器的挂载目录到 WebDAV
 rclone copy "$mounts" "$WEBDAV_REMOTE:$webdav_path" --progress || {
@@ -154,16 +207,23 @@ rclone copy "$mounts" "$WEBDAV_REMOTE:$webdav_path" --progress || {
 }
 EOL
 
-    # 给备份脚本赋予执行权限
-    chmod +x "$backup_script"
+            # 给备份脚本赋予执行权限
+            chmod +x "$backup_script"
 
-    # 添加 cron 任务
-    (crontab -l ; echo "$cron_schedule $backup_script") | crontab - || {
-        echo "设置定期备份任务失败。"
-        exit 1
-    }
+            # 添加 cron 任务
+            (crontab -l ; echo "$cron_schedule $backup_script") | crontab - || {
+                echo "设置定期备份任务失败。"
+                exit 1
+            }
 
-    echo "定期备份任务已设置成功。"
+            echo "定期备份任务已设置成功。"
+            ;;
+        
+        *)
+            echo "无效的选择。"
+            exit 1
+            ;;
+    esac
 }
 
 # 删除定期备份任务
