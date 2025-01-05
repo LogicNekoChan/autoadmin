@@ -409,7 +409,7 @@ restore_container_from_backup() {
     container_name=$(docker inspect --format '{{.Name}}' "$container_id" | sed 's/^\///')
     echo "您选择的容器是：$container_name (ID: $container_id)"
 
-    # 停止容器并备份数据
+    # 停止容器
     echo "正在停止容器 $container_name..."
     docker stop "$container_id" || exit 1
 
@@ -418,18 +418,21 @@ restore_container_from_backup() {
     mounts=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="bind") | .Source')
     volumes=$(docker inspect "$container_id" | jq -r '.[].Mounts[] | select(.Type=="volume") | .Name')
 
-    # 删除挂载的目录
+    # 删除挂载的目录内容
     for mount in $mounts; do
         if [ -d "$mount" ]; then
-            rm -rf "$mount"
-            echo "删除目录：$mount"
+            echo "清空挂载目录：$mount"
+            rm -rf "$mount"/*
         fi
     done
 
-    # 删除挂载的卷
+    # 删除卷内的数据
     for volume in $volumes; do
-        echo "删除卷：$volume"
-        docker volume rm "$volume" || echo "删除卷 $volume 失败。"
+        volume_path=$(docker volume inspect --format '{{.Mountpoint}}' "$volume")
+        if [ -d "$volume_path" ]; then
+            echo "清空卷 $volume 的数据"
+            rm -rf "$volume_path"/*
+        fi
     done
 
     # 恢复容器的数据卷
