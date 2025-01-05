@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# 获取公有IP地址
 get_public_ip() {
     # 尝试获取IPv4地址
     public_ip=$(curl -s4 ifconfig.me)
