@@ -358,10 +358,12 @@ backup_container_to_webdav() {
 
 # 恢复容器
 restore_container_from_backup() {
+    BACKUP_DIR="/root/backup"  # 确定备份路径
+
     echo "正在列出备份文件..."
 
     # 列出备份文件
-    backups=($(ls $BACKUP_DIR/*.tar.gz))
+    backups=($(ls $BACKUP_DIR/*.tar.gz 2>/dev/null))
     if [ ${#backups[@]} -eq 0 ]; then
         echo "没有找到备份文件。"
         exit 1
