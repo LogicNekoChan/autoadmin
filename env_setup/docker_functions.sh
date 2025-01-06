@@ -439,7 +439,7 @@ restore_container_from_backup() {
     # 恢复数据卷数据
     for volume in $volumes; do
         # 获取数据卷的挂载路径
-        volume_path=$(docker volume inspect --format '{{.Mountpoint}}' "$volume")
+        volume_path="/var/lib/docker/volumes/$volume/_data"
         if [ -d "$volume_path" ]; then
             echo "恢复卷 $volume 数据到目录 $volume_path"
             # 解压备份文件到卷的挂载路径
