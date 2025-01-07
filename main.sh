@@ -9,7 +9,7 @@
 . ./env_setup/port_forwarding.sh 
 . ./env_setup/production_setup.sh
 . ./env_setup/daily_service_deployment.sh   # 引用日常服务部署脚本
-. ./env_setup/
+. ./env_setup/deploy_docker_swarm_and_portworx.sh
 
 show_main_menu() {
     while true; do
