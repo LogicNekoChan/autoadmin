@@ -107,7 +107,7 @@ deploy_portworx_with_persistence() {
         --env PX_DATA_DIR="$DATA_DIR" \
         --env PX_STORAGE_DEVICES="$STORAGE_DEVICE" \
         --mount type=volume,source=portworx_data,destination=/opt/portworx-data \
-        portworx/portworx:latest
+        portworx/px-csi:latest
 
     if [ $? -eq 0 ]; then
         echo "Portworx 持久化存储服务已部署，您可以通过以下命令访问："
