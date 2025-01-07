@@ -1,4 +1,4 @@
-version: "3"
+version: "3.8"
 services:
 
   # Portainer - Docker 管理工具
@@ -12,7 +12,9 @@ services:
       - "9443:9443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
+      - portworx_portainer_data:/data
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Minecraft 服务器
   mcserver:
@@ -23,10 +25,12 @@ services:
       - MEMORYSIZE=1G
       - PAPERMC_FLAGS=
     volumes:
-      - mcserver_data:/data:rw
+      - portworx_mcserver_data:/data:rw
     ports:
       - 25565:25565
     tty: true
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # 文件浏览器
   filebrowser:
@@ -36,12 +40,14 @@ services:
     ports:
       - "8090:80"
     volumes:
-      - filebrowser_data:/data
+      - portworx_filebrowser_data:/data
     environment:
       - DATA_DIR=/
       - TZ=Asia/Shanghai  # 设置时区
       - USERNAME=admin    # 设置登录用户名
       - PASSWORD=admin123 # 设置登录密码
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # ChatGPT Web
   chatgpt-web:
@@ -52,6 +58,8 @@ services:
       - "8000:8000"
     environment:
       - ACCESS_TOKEN=your_access_token  # 替换为您的 Access Token
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # AdGuardHome 广告过滤器
   adguardhome:
@@ -59,12 +67,14 @@ services:
     container_name: adguardhome
     restart: unless-stopped
     volumes:
-      - adguardhome_work:/opt/adguardhome/work
-      - adguardhome_conf:/opt/adguardhome/conf
+      - portworx_adguardhome_work:/opt/adguardhome/work
+      - portworx_adguardhome_conf:/opt/adguardhome/conf
     ports:
       - "53:53/tcp"
       - "53:53/udp"
       - "3000:3000/tcp"
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Alist 文件管理工具
   alist:
@@ -78,8 +88,10 @@ services:
       - PUID=0
       - PGID=0
     volumes:
-      - alist_data:/opt/alist/data
-      - alist_config:/etc/alist
+      - portworx_alist_data:/opt/alist/data
+      - portworx_alist_config:/etc/alist
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # aaPanel - 面板管理工具
   aapanel:
@@ -88,9 +100,11 @@ services:
     network_mode: host
     restart: unless-stopped
     volumes:
-      - website_data:/www/wwwroot
-      - mysql_data:/www/server/data
-      - vhost:/www/server/panel/vhost
+      - portworx_website_data:/www/wwwroot
+      - portworx_mysql_data:/www/server/data
+      - portworx_vhost:/www/server/panel/vhost
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Calibre Web - 电子书管理工具
   calibre-web:
@@ -101,11 +115,13 @@ services:
       - PGID=1000
       - TZ=Etc/UTC
     volumes:
-      - calibre_web_data:/config
-      - calibre_library:/books
+      - portworx_calibre_web_data:/config
+      - portworx_calibre_library:/books
     ports:
       - 8083:8083
     restart: unless-stopped
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # KodBox - 文件管理工具
   kodbox:
@@ -114,8 +130,10 @@ services:
     ports:
       - 89:80
     volumes:
-      - kodbox_data:/var/www/html
+      - portworx_kodbox_data:/var/www/html
     restart: unless-stopped
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Nginx Proxy Manager
   nginx:
@@ -124,8 +142,10 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - nginx_data:/data
-      - letsencrypt:/etc/letsencrypt
+      - portworx_nginx_data:/data
+      - portworx_letsencrypt:/etc/letsencrypt
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # qBittorrent 下载工具
   qbittorrent:
@@ -138,13 +158,15 @@ services:
       - WEBUI_PORT=8080
       - TORRENTING_PORT=6881
     volumes:
-      - qbittorrent_config:/config
-      - qbittorrent_downloads:/downloads
+      - portworx_qbittorrent_config:/config
+      - portworx_qbittorrent_downloads:/downloads
     ports:
       - 8080:8080
       - 6881:6881
       - 6881:6881/udp
     restart: unless-stopped
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Qinglong - 自动化脚本
   qinglong:
@@ -155,7 +177,9 @@ services:
     ports:
       - 5700:5700
     volumes:
-      - qinglong_data:/ql/data
+      - portworx_qinglong_data:/ql/data
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Vaultwarden - 密码管理
   vaultwarden:
@@ -163,13 +187,15 @@ services:
     container_name: vaultwarden
     restart: unless-stopped
     volumes:
-      - vaultwarden_data:/data
+      - portworx_vaultwarden_data:/data
     ports:
       - 86:80
     environment:
       - PUID=0
       - PGID=0
       - DATABASE_URL=postgresql://vaultwarden_user:your_password@postgres:5432/vaultwarden_db
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Watchtower - 自动更新容器
   watchtower:
@@ -179,6 +205,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
     command: --cleanup
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # WireGuard Easy - VPN
   wg-easy:
@@ -189,7 +217,7 @@ services:
       - PASSWORD=foobar123
       - WG_PORT=51820
     volumes:
-      - wireguard:/etc/wireguard
+      - portworx_wireguard:/etc/wireguard
     ports:
       - 51822:51820/udp
       - 51821:51821/tcp
@@ -200,6 +228,8 @@ services:
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Photoprism - 照片管理工具
   photoprism:
@@ -210,8 +240,10 @@ services:
     environment:
       - PHOTOPRISM_ADMIN_PASSWORD=photoprism
     volumes:
-      - photoprism_data:/photoprism
+      - portworx_photoprism_data:/photoprism
     restart: unless-stopped
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Vocechat - 聊天工具
   vocechat:
@@ -222,16 +254,20 @@ services:
       - '3019:3000'
     volumes:
       - '/root/vocechat:/home/vocechat-server/data'
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # XUI - 管理面板
   xui:
     image: enwaiax/x-ui:alpha-zh
     container_name: xui
     volumes:
-      - xui_db:/etc/x-ui/
-      - xui_cert:/root/cert/
+      - portworx_xui_db:/etc/x-ui/
+      - portworx_xui_cert:/root/cert/
     restart: unless-stopped
     network_mode: host
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # MySQL 数据库
   mysql:
@@ -242,6 +278,8 @@ services:
       MYSQL_ROOT_PASSWORD: admin123
     ports:
       - "3306:3306"
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # WordPress 网站
   wordpress:
@@ -250,6 +288,8 @@ services:
     restart: unless-stopped
     ports:
       - "8089:80"
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Nextcloud - 云存储
   nextcloud:
@@ -259,7 +299,22 @@ services:
     ports:
       - "8095:80"
     volumes:
-      - nextcloud:/home/wwwroot/nextcloud
+      - portworx_nextcloud:/home/wwwroot/nextcloud
+    deploy:
+      replicas: 1  # 设置副本数为 1
+
+  # Redis 数据库
+  redis:
+    image: redis:latest
+    container_name: redis
+    command: redis-server --save 60 1 --loglevel warning --requirepass yourpassword
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - portworx_redis_data:/data
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
   # Synctv - 文件同步
   synctv:
@@ -280,41 +335,32 @@ services:
       - DATABASE_USER=root
       - DATABASE_PASSWORD=your_db_password
       - DATABASE_NAME=synctv
-
-  # Redis 数据库
-  redis:
-    image: redis:latest
-    container_name: redis
-    command: redis-server --save 60 1 --loglevel warning --requirepass yourpassword
-    restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
+    deploy:
+      replicas: 1  # 设置副本数为 1
 
 volumes:
-  portainer_data:
-  mcserver_data:
-  filebrowser_data:
-  adguardhome_work:
-  adguardhome_conf:
-  alist_data:
-  alist_config:
-  website_data:
-  mysql_data:
-  calibre_web_data:
-  calibre_library:
-  kodbox_data:
-  nginx_data:
-  letsencrypt:
-  qbittorrent_config:
-  qbittorrent_downloads:
-  qinglong_data:
-  vaultwarden_data:
-  wireguard:
-  photoprism_data:
-  xui_db:
-  xui_cert:
-  nextcloud:
-  redis_data:
-  synctv_data:
+  portworx_portainer_data:
+  portworx_mcserver_data:
+  portworx_filebrowser_data:
+  portworx_adguardhome_work:
+  portworx_adguardhome_conf:
+  portworx_alist_data:
+  portworx_alist_config:
+  portworx_website_data:
+  portworx_mysql_data:
+  portworx_calibre_web_data:
+  portworx_calibre_library:
+  portworx_kodbox_data:
+  portworx_nginx_data:
+  portworx_letsencrypt:
+  portworx_qbittorrent_config:
+  portworx_qbittorrent_downloads:
+  portworx_qinglong_data:
+  portworx_vaultwarden_data:
+  portworx_wireguard:
+  portworx_photoprism_data:
+  portworx_xui_db:
+  portworx_xui_cert:
+  portworx_nextcloud:
+  portworx_redis_data:
+  portworx_synctv_data:
