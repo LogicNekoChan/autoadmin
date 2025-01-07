@@ -236,5 +236,3 @@ pause() {
     read -p "按 Enter 键继续..."
 }
 
-# 主菜单调用
-deploy_docker_swarm_and_portworx_menu
