@@ -24,10 +24,11 @@ show_main_menu() {
         echo "5. 科学上网管理"
         echo "6. 内网端口转发管理"
         echo "7. 生产环境部署"
-        echo "8. 日常服务部署"             # 新增选项
-        echo "9. 退出"
+        echo "8. 日常服务部署"   
+        echo "9. 日常服务部署"   
+        echo "10. 退出"
         echo "==============================="
-        read -p "请选择一个选项 (1-9): " choice
+        read -p "请选择一个选项 (1-10): " choice
         echo "选择的选项是: $choice"  # 调试输出
 
         case $choice in
@@ -39,7 +40,8 @@ show_main_menu() {
             6) echo "进入 内网端口转发管理"; port_forwarding_menu ;; # 内网端口转发
             7) echo "进入 生产环境部署"; production_deployment_menu ;; # 生产环境部署
             8) echo "进入 日常服务部署"; daily_service_deployment_menu ;; # 日常服务部署
-            9) echo "退出脚本"; exit 0 ;;                         # 退出脚本
+            9）echo "进入 Docker-Swarm集群部署"; deploy_docker_swarm_and_portworx_menu ;;
+            10) echo "退出脚本"; exit 0 ;;                         # 退出脚本
             *) echo "无效选项，请重试"; sleep 2 ;;
         esac
     done
