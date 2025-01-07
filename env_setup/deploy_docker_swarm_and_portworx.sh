@@ -114,7 +114,7 @@ deploy_portworx_with_persistence() {
     sudo docker run --entrypoint /runc-entry-point.sh \
         --rm -i --privileged=true \
         -v /opt/pwx:/opt/pwx -v /etc/pwx:/etc/pwx \
-        $latest_stable
+        $latest_stable --upgrade
 
     if [ $? -ne 0 ]; then
         echo "Portworx OCI bundle 安装失败！" >&2
