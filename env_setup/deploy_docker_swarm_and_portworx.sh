@@ -93,21 +93,33 @@ deploy_portworx_with_persistence() {
     # 配置 Portworx 持久化存储卷
     DATA_DIR="/opt/portworx-data"
     
-    # 创建持久化存储卷（可以为多个节点创建挂载点）
+    # 创建持久化存储卷
     mkdir -p $DATA_DIR
     docker volume create --name portworx_data -o type=none -o device=$DATA_DIR -o o=bind
 
-    # 部署 Portworx 服务
-    docker service create \
-        --name portworx \
-        --replicas 1 \
-        --publish published=9001,target=9001 \
-        --env PX_SWARM_MODE=true \
-        --env PX_CLUSTER_ID="mintcat" \
-        --env PX_DATA_DIR="$DATA_DIR" \
-        --env PX_STORAGE_DEVICES="$STORAGE_DEVICE" \
-        --mount type=volume,source=portworx_data,destination=/opt/portworx-data \
-        portworx/px-csi
+    # 获取 Portworx 安装包 URL
+    REL="/2.13"  # Portworx v2.13 release
+    latest_stable=$(curl -fsSL "https://install.portworx.com$REL/?type=dock&stork=false&aut=false" | awk '/image: / {print $2}' | head -1)
+
+    # 下载并安装 Portworx OCI 包
+    echo "下载并安装 Portworx OCI 包..."
+    sudo docker run --entrypoint /runc-entry-point.sh \
+        --rm -i --privileged=true \
+        -v /opt/pwx:/opt/pwx -v /etc/pwx:/etc/pwx \
+        $latest_stable
+
+    # 配置 Portworx
+    echo "配置 Portworx ..."
+    sudo /opt/pwx/bin/px-runc install -c mintcat \
+        -k etcd://myetc.company.com:2379 \
+        -s $STORAGE_DEVICE
+
+    # 启动 Portworx
+    echo "启动 Portworx ..."
+    sudo /opt/pwx/bin/px-runc start
+
+    # 验证 Portworx 是否运行正常
+    sudo /opt/pwx/bin/pxctl status
 
     if [ $? -eq 0 ]; then
         echo "Portworx 持久化存储服务已部署，您可以通过以下命令访问："
@@ -166,16 +178,20 @@ activate_new_node_with_persistence() {
     # 配置 Portworx 持久化存储卷
     DATA_DIR="/opt/portworx-data"
     
-    # 创建持久化存储卷（可以为多个节点创建挂载点）
+    # 创建持久化存储卷
     mkdir -p $DATA_DIR
     docker volume create --name portworx_data -o type=none -o device=$DATA_DIR -o o=bind
 
-    # 部署 Portworx 服务（为新节点启动）
-    docker service update \
-        --force \
-        --env-add PX_STORAGE_DEVICES="$STORAGE_DEVICE" \
-        --mount-add type=volume,source=portworx_data,destination=/opt/portworx-data \
-        portworx/portworx:latest
+    # 配置 Portworx
+    sudo /opt/pwx/bin/px-runc install -c mintcat \
+        -k etcd://myetc.company.com:2379 \
+        -s $STORAGE_DEVICE
+
+    # 启动 Portworx
+    sudo /opt/pwx/bin/px-runc start
+
+    # 验证 Portworx 是否运行正常
+    sudo /opt/pwx/bin/pxctl status
 
     if [ $? -eq 0 ]; then
         echo "Portworx 持久化存储服务已成功激活并为新节点部署。"
@@ -198,7 +214,10 @@ get_public_ip() {
     echo "$public_ip"
 }
 
-# 暂停等待用户按键
+# 暂停功能
 pause() {
     read -p "按 Enter 键继续..."
 }
+
+# 主菜单调用
+deploy_docker_swarm_and_portworx_menu
