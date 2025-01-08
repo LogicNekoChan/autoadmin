@@ -135,6 +135,57 @@ deploy_portworx_with_persistence() {
     }
 
     # 配置 Portworx 安装
+    echo "正在配置 Portworx ..." | tee -a $LOG_FILE
+
+    # 获取并设置集群的 etcd 地址
+    local etcd_address="etcd://$public_ip:2379"
+
+    # 如果已有卷，进行卷扩展
+    if [ -n "$EXISTING_VOLUME" ]; then
+        echo "检测到已有的卷，开始调整卷的大小..." | tee -a $LOG_FILE
+        # 扩展卷大小
+        sudo /opt/pwx/bin/pxctl volume expand --size 5Gi portworx_data || {
+            echo "扩展卷大小失败!" | tee -a $LOG_FILE >&2
+            return 1
+        }
+    else
+        # 创建新卷并设置卷大小为 5GB
+        echo "创建新的 Portworx 卷..." | tee -a $LOG_FILE
+        sudo /opt/pwx/bin/px-runc install -c "mintcat" -k $etcd_address -s $STORAGE_DEVICE \
+            --volume-size 5Gi || {
+            echo "Portworx 卷创建失败!" | tee -a $LOG_FILE >&2
+            return 1
+        }
+    fi
+
+    # 激活并启动 Portworx 服务
+    echo "正在激活并启动 Portworx 服务..." | tee -a $LOG_FILE
+    sudo systemctl daemon-reload || {
+        echo "重新加载系统服务失败!" | tee -a $LOG_FILE >&2
+        return 1
+    }
+    sudo systemctl enable portworx || {
+        echo "设置 Portworx 服务为开机启动失败!" | tee -a $LOG_FILE >&2
+        return 1
+    }
+    sudo systemctl start portworx || {
+        echo "启动 Portworx 服务失败!" | tee -a $LOG_FILE >&2
+        return 1
+    }
+
+    # 验证 Portworx 状态
+    sudo /opt/pwx/bin/pxctl status || {
+        echo "Portworx 状态检查失败!" | tee -a $LOG_FILE >&2
+        return 1
+    }
+
+    echo "Portworx 持久化存储服务已成功部署!" | tee -a $LOG_FILE
+    echo "您可以通过以下地址访问 Portworx 管理界面: http://$public_ip:9001" | tee -a $LOG_FILE
+
+    pause
+}
+
+    # 配置 Portworx 安装
     echo "正在配置 Portworx..." | tee -a $LOG_FILE
 
     # 使用本机的公网 IP 地址作为 etcd 地址
