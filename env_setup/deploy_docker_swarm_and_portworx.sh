@@ -67,7 +67,6 @@ get_available_storage_device() {
     echo ""
 }
 
-# 部署 Portworx 持久化存储服务
 deploy_portworx_with_persistence() {
     echo "正在部署 Portworx 持久化存储..."
 
@@ -142,16 +141,19 @@ deploy_portworx_with_persistence() {
     if [ -n "$EXISTING_VOLUME" ]; then
         echo "检测到已有的卷，开始调整卷的大小..."
         # 扩展卷大小
-        sudo /opt/pwx/bin/pxctl volume expand --size 5Gi portworx_data
+        sudo /opt/pwx/bin/pxctl volume expand --size 5Gi portworx_data || {
+            echo "扩展卷大小失败，请手动检查卷配置！" >&2
+            return 1
+        }
     else
         # 创建新卷并设置卷大小为 5GB
         sudo /opt/pwx/bin/px-runc install -c "mintcat" -k $etcd_address -s $STORAGE_DEVICE \
             --volume-size 5Gi  # 设置卷大小为 5GB
-    fi
 
-    if [ $? -ne 0 ]; then
-        echo "Portworx 配置失败！" >&2
-        return 1
+        if [ $? -ne 0 ]; then
+            echo "Portworx 配置失败！" >&2
+            return 1
+        fi
     fi
 
     # 激活并启动 Portworx 服务
