@@ -106,11 +106,12 @@ deploy_portworx_with_persistence() {
     fi
 
     # 安装 Portworx OCI bundle（如果尚未安装）
-    REL="/3.2"  # 版本号已更新为 3.2
+    REL="/3.2"  # 更新为 Portworx 版本 3.2
     latest_stable=$(curl -fsSL "https://install.portworx.com$REL/?type=dock&stork=false&aut=false" | awk '/image: / {print $2}' | head -1)
 
     # 执行 px-runc 安装命令，指定集群ID，KVDB 和存储设备
     echo "正在安装 Portworx ..."
+
     sudo docker run --entrypoint /runc-entry-point.sh \
         --rm -i --privileged=true \
         -v /opt/pwx:/opt/pwx -v /etc/pwx:/etc/pwx \
