@@ -79,10 +79,10 @@ deploy_portworx_with_persistence() {
 
     # 获取节点的公网 IP 地址
     public_ip=$(get_public_ip)
+    echo "节点的公网 IP 地址: $public_ip" | tee -a $LOG_FILE
 
     # 自动识别未挂载的存储设备
     STORAGE_DEVICE=$(get_available_storage_device)
-    
     if [ -z "$STORAGE_DEVICE" ]; then
         echo "没有可用的存储设备，请确保系统有未挂载的磁盘。" | tee -a $LOG_FILE >&2
         return 1
@@ -149,7 +149,22 @@ deploy_portworx_with_persistence() {
             return 1
         }
     else
-        # 创建新卷并设置卷大小为 5GB
+        # 确保存储设备在使用前格式化并清除
+        echo "确保分区 $STORAGE_DEVICE 清空并格式化..." | tee -a $LOG_FILE
+        sudo wipefs --all $STORAGE_DEVICE || {
+            echo "清除分区信息失败: $STORAGE_DEVICE" | tee -a $LOG_FILE >&2
+            return 1
+        }
+
+        # 创建新的文件系统
+        echo "正在格式化存储设备 $STORAGE_DEVICE ..." | tee -a $LOG_FILE
+        sudo mkfs.ext4 $STORAGE_DEVICE || {
+            echo "格式化存储设备失败: $STORAGE_DEVICE" | tee -a $LOG_FILE >&2
+            return 1
+        }
+
+        # 创建新的 Portworx 配置
+        echo "正在为存储设备创建新的 Portworx 配置..." | tee -a $LOG_FILE
         sudo /opt/pwx/bin/px-runc install -c "mintcat" -k $etcd_address -s $STORAGE_DEVICE \
             --volume-size 5Gi || {
             echo "Portworx 配置失败!" | tee -a $LOG_FILE >&2
@@ -163,13 +178,14 @@ deploy_portworx_with_persistence() {
     sudo systemctl enable portworx || { echo "启用 Portworx 服务失败!" | tee -a $LOG_FILE >&2; return 1; }
     sudo systemctl start portworx || { echo "启动 Portworx 服务失败!" | tee -a $LOG_FILE >&2; return 1; }
 
-    if [ $? -eq 0 ]; then
-        echo "Portworx 持久化存储服务已成功部署，您可以通过以下命令访问：" | tee -a $LOG_FILE
-        echo "http://$public_ip:9001" | tee -a $LOG_FILE
-    else
+    # 验证 Portworx 是否运行正常
+    sudo /opt/pwx/bin/pxctl status || {
         echo "Portworx 服务启动失败！" | tee -a $LOG_FILE >&2
         return 1
-    fi
+    }
+
+    echo "Portworx 持久化存储服务已成功部署，您可以通过以下命令访问：" | tee -a $LOG_FILE
+    echo "http://$public_ip:9001" | tee -a $LOG_FILE
 
     pause
 }
