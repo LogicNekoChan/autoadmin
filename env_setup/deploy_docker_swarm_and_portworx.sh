@@ -89,13 +89,23 @@ deploy_portworx_with_persistence() {
     fi
 
     echo "找到可用的存储设备: $STORAGE_DEVICE"
-    
-    # 配置 Portworx 持久化存储卷
-    DATA_DIR="/opt/portworx-data"
-    
-    # 创建持久化存储卷（可以为多个节点创建挂载点）
-    mkdir -p $DATA_DIR
-    docker volume create --name portworx_data -o type=none -o device=$DATA_DIR -o o=bind
+
+    # 检查是否已经有 Portworx 卷
+    EXISTING_VOLUME=$(docker volume ls -q -f name=portworx_data)
+
+    if [ -n "$EXISTING_VOLUME" ]; then
+        echo "发现已有的 Portworx 卷: $EXISTING_VOLUME"
+        # 使用已有的卷
+        echo "将使用已有的 Portworx 卷，调整卷配置..."
+    else
+        # 配置 Portworx 持久化存储卷
+        DATA_DIR="/opt/portworx-data"
+        echo "没有发现现有的 Portworx 卷，创建新的卷: $DATA_DIR"
+        
+        # 创建新的持久化存储卷（可以为多个节点创建挂载点）
+        mkdir -p $DATA_DIR
+        docker volume create --name portworx_data -o type=none -o device=$DATA_DIR -o o=bind
+    fi
 
     # 检查并创建日志目录
     LOG_DIR="/var/lib/osd/log"
@@ -128,9 +138,16 @@ deploy_portworx_with_persistence() {
     # 使用本机的公网 IP 地址作为 etcd 地址
     local etcd_address="etcd://$public_ip:2379"
 
-    # 设置卷大小为 5GB，并安装 Portworx
-    sudo /opt/pwx/bin/px-runc install -c "mintcat" -k $etcd_address -s $STORAGE_DEVICE \
-        --volume-size 5Gi  # 设置卷大小为 5GB
+    # 如果存在卷，就跳过创建新卷并调整现有卷配置
+    if [ -n "$EXISTING_VOLUME" ]; then
+        echo "检测到已有的卷，开始调整卷的大小..."
+        # 扩展卷大小
+        sudo /opt/pwx/bin/pxctl volume expand --size 5Gi portworx_data
+    else
+        # 创建新卷并设置卷大小为 5GB
+        sudo /opt/pwx/bin/px-runc install -c "mintcat" -k $etcd_address -s $STORAGE_DEVICE \
+            --volume-size 5Gi  # 设置卷大小为 5GB
+    fi
 
     if [ $? -ne 0 ]; then
         echo "Portworx 配置失败！" >&2
