@@ -95,7 +95,7 @@ deploy_portworx_with_persistence() {
     
     # 创建持久化存储卷（可以为多个节点创建挂载点）
     mkdir -p $DATA_DIR
-    docker volume create --name portworx_data -o type=none -o device=$DATA_DIR -o o=bind
+    sudo docker volume create --name portworx_data -o type=none -o device=$DATA_DIR -o o=bind
 
     # 检查并创建日志目录
     LOG_DIR="/var/lib/osd/log"
@@ -197,7 +197,7 @@ activate_new_node_with_persistence() {
     
     # 创建持久化存储卷
     mkdir -p $DATA_DIR
-    docker volume create --name portworx_data -o type=none -o device=$DATA_DIR -o o=bind
+    sudo docker volume create --name portworx_data -o type=none -o device=$DATA_DIR -o o=bind
 
     # 配置 Portworx
     sudo /opt/pwx/bin/px-runc install -c mintcat \
@@ -235,4 +235,3 @@ get_public_ip() {
 pause() {
     read -p "按 Enter 键继续..."
 }
-
