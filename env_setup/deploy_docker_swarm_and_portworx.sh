@@ -68,7 +68,6 @@ get_available_storage_device() {
 }
 
 # 部署 Portworx 持久化存储服务
-# 部署 Portworx 持久化存储服务
 deploy_portworx_with_persistence() {
     echo "正在部署 Portworx 持久化存储..."
 
@@ -107,12 +106,11 @@ deploy_portworx_with_persistence() {
     fi
 
     # 安装 Portworx OCI bundle（如果尚未安装）
-    REL="/3.2"  # 版本号改为 3.2，确保使用你所需的版本
+    REL="/3.2"  # 版本号已更新为 3.2
     latest_stable=$(curl -fsSL "https://install.portworx.com$REL/?type=dock&stork=false&aut=false" | awk '/image: / {print $2}' | head -1)
 
     # 执行 px-runc 安装命令，指定集群ID，KVDB 和存储设备
     echo "正在安装 Portworx ..."
-
     sudo docker run --entrypoint /runc-entry-point.sh \
         --rm -i --privileged=true \
         -v /opt/pwx:/opt/pwx -v /etc/pwx:/etc/pwx \
@@ -129,7 +127,7 @@ deploy_portworx_with_persistence() {
     # 使用本机的公网 IP 地址作为 etcd 地址
     local etcd_address="etcd://$public_ip:2379"
 
-    # 这里我们设置卷大小为 5GB
+    # 设置卷大小为 5GB，并安装 Portworx
     sudo /opt/pwx/bin/px-runc install -c "mintcat" -k $etcd_address -s $STORAGE_DEVICE \
         --volume-size 5Gi  # 设置卷大小为 5GB
 
