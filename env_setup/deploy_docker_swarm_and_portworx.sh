@@ -68,11 +68,12 @@ get_available_storage_device() {
 }
 
 deploy_portworx_with_persistence() {
-    echo "正在部署 Portworx 持久化存储..."
+    LOG_FILE="/var/log/portworx_deploy.log"
+    echo "正在部署 Portworx 持久化存储..." | tee -a $LOG_FILE
 
     # 检查是否为 Docker Swarm 环境
     if ! docker info | grep -q "Swarm: active"; then
-        echo "Docker Swarm 未启用，请先启用 Docker Swarm。" >&2
+        echo "Docker Swarm 未启用，请先启用 Docker Swarm。" | tee -a $LOG_FILE >&2
         return 1
     fi
 
@@ -83,90 +84,90 @@ deploy_portworx_with_persistence() {
     STORAGE_DEVICE=$(get_available_storage_device)
     
     if [ -z "$STORAGE_DEVICE" ]; then
-        echo "没有可用的存储设备，请确保系统有未挂载的磁盘。" >&2
+        echo "没有可用的存储设备，请确保系统有未挂载的磁盘。" | tee -a $LOG_FILE >&2
         return 1
     fi
 
-    echo "找到可用的存储设备: $STORAGE_DEVICE"
+    echo "找到可用的存储设备: $STORAGE_DEVICE" | tee -a $LOG_FILE
 
     # 检查是否已经有 Portworx 卷
     EXISTING_VOLUME=$(docker volume ls -q -f name=portworx_data)
 
     if [ -n "$EXISTING_VOLUME" ]; then
-        echo "发现已有的 Portworx 卷: $EXISTING_VOLUME"
-        # 使用已有的卷
-        echo "将使用已有的 Portworx 卷，调整卷配置..."
+        echo "发现已有的 Portworx 卷: $EXISTING_VOLUME" | tee -a $LOG_FILE
+        echo "将使用已有的 Portworx 卷，调整卷配置..." | tee -a $LOG_FILE
     else
         # 配置 Portworx 持久化存储卷
         DATA_DIR="/opt/portworx-data"
-        echo "没有发现现有的 Portworx 卷，创建新的卷: $DATA_DIR"
+        echo "没有发现现有的 Portworx 卷，创建新的卷: $DATA_DIR" | tee -a $LOG_FILE
         
         # 创建新的持久化存储卷（可以为多个节点创建挂载点）
-        mkdir -p $DATA_DIR
-        docker volume create --name portworx_data -o type=none -o device=$DATA_DIR -o o=bind
+        mkdir -p $DATA_DIR || { echo "创建数据目录失败!" | tee -a $LOG_FILE >&2; return 1; }
+        docker volume create --name portworx_data -o type=none -o device=$DATA_DIR -o o=bind || {
+            echo "创建 Docker 卷失败!" | tee -a $LOG_FILE >&2
+            return 1
+        }
     fi
 
     # 检查并创建日志目录
     LOG_DIR="/var/lib/osd/log"
     if [ ! -d "$LOG_DIR" ]; then
-        echo "创建日志目录: $LOG_DIR"
-        sudo mkdir -p $LOG_DIR
-        sudo chmod 755 $LOG_DIR
+        echo "创建日志目录: $LOG_DIR" | tee -a $LOG_FILE
+        sudo mkdir -p $LOG_DIR || { echo "创建日志目录失败!" | tee -a $LOG_FILE >&2; return 1; }
+        sudo chmod 755 $LOG_DIR || { echo "设置日志目录权限失败!" | tee -a $LOG_FILE >&2; return 1; }
     fi
 
     # 安装 Portworx OCI bundle（如果尚未安装）
     REL="/3.2"  # 更新为 Portworx 版本 3.2
     latest_stable=$(curl -fsSL "https://install.portworx.com$REL/?type=dock&stork=false&aut=false" | awk '/image: / {print $2}' | head -1)
-
-    # 执行 px-runc 安装命令，指定集群ID，KVDB 和存储设备
-    echo "正在安装 Portworx ..."
-
-    sudo docker run --entrypoint /runc-entry-point.sh \
-        --rm -i --privileged=true \
-        -v /opt/pwx:/opt/pwx -v /etc/pwx:/etc/pwx \
-        $latest_stable --upgrade
-
-    if [ $? -ne 0 ]; then
-        echo "Portworx OCI bundle 安装失败！" >&2
+    if [ -z "$latest_stable" ]; then
+        echo "无法获取最新的 Portworx 安装镜像!" | tee -a $LOG_FILE >&2
         return 1
     fi
 
+    echo "正在安装 Portworx OCI bundle..." | tee -a $LOG_FILE
+    sudo docker run --entrypoint /runc-entry-point.sh \
+        --rm -i --privileged=true \
+        -v /opt/pwx:/opt/pwx -v /etc/pwx:/etc/pwx \
+        $latest_stable --upgrade || {
+        echo "Portworx OCI bundle 安装失败!" | tee -a $LOG_FILE >&2
+        return 1
+    }
+
     # 配置 Portworx 安装
-    echo "正在配置 Portworx ..."
+    echo "正在配置 Portworx..." | tee -a $LOG_FILE
 
     # 使用本机的公网 IP 地址作为 etcd 地址
     local etcd_address="etcd://$public_ip:2379"
 
     # 如果存在卷，就跳过创建新卷并调整现有卷配置
     if [ -n "$EXISTING_VOLUME" ]; then
-        echo "检测到已有的卷，开始调整卷的大小..."
+        echo "检测到已有的卷，开始调整卷的大小..." | tee -a $LOG_FILE
         # 扩展卷大小
         sudo /opt/pwx/bin/pxctl volume expand --size 5Gi portworx_data || {
-            echo "扩展卷大小失败，请手动检查卷配置！" >&2
+            echo "扩展卷大小失败，请手动检查卷配置!" | tee -a $LOG_FILE >&2
             return 1
         }
     else
         # 创建新卷并设置卷大小为 5GB
         sudo /opt/pwx/bin/px-runc install -c "mintcat" -k $etcd_address -s $STORAGE_DEVICE \
-            --volume-size 5Gi  # 设置卷大小为 5GB
-
-        if [ $? -ne 0 ]; then
-            echo "Portworx 配置失败！" >&2
+            --volume-size 5Gi || {
+            echo "Portworx 配置失败!" | tee -a $LOG_FILE >&2
             return 1
-        fi
+        }
     fi
 
     # 激活并启动 Portworx 服务
-    echo "正在激活并启动 Portworx 服务..."
-    sudo systemctl daemon-reload
-    sudo systemctl enable portworx
-    sudo systemctl start portworx
+    echo "正在激活并启动 Portworx 服务..." | tee -a $LOG_FILE
+    sudo systemctl daemon-reload || { echo "重新加载系统守护进程失败!" | tee -a $LOG_FILE >&2; return 1; }
+    sudo systemctl enable portworx || { echo "启用 Portworx 服务失败!" | tee -a $LOG_FILE >&2; return 1; }
+    sudo systemctl start portworx || { echo "启动 Portworx 服务失败!" | tee -a $LOG_FILE >&2; return 1; }
 
     if [ $? -eq 0 ]; then
-        echo "Portworx 持久化存储服务已成功部署，您可以通过以下命令访问："
-        echo "http://$public_ip:9001"
+        echo "Portworx 持久化存储服务已成功部署，您可以通过以下命令访问：" | tee -a $LOG_FILE
+        echo "http://$public_ip:9001" | tee -a $LOG_FILE
     else
-        echo "Portworx 服务启动失败！" >&2
+        echo "Portworx 服务启动失败！" | tee -a $LOG_FILE >&2
         return 1
     fi
 
