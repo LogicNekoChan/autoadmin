@@ -105,28 +105,27 @@ deploy_portworx_with_persistence() {
         sudo chmod 755 $LOG_DIR
     fi
 
-    # 安装 Portworx 3.2 版本
-    echo "正在安装 Portworx 3.2 ..."
+    # 安装 Portworx OCI bundle（如果尚未安装）
+    REL="/2.13"  # 版本号，确保使用你所需的版本
+    latest_stable=$(curl -fsSL "https://install.portworx.com$REL/?type=dock&stork=false&aut=false" | awk '/image: / {print $2}' | head -1)
 
-    # Portworx 3.2 安装命令
+    # 执行 px-runc 安装命令，指定集群ID，KVDB 和存储设备
+    echo "正在安装 Portworx ..."
     sudo docker run --entrypoint /runc-entry-point.sh \
         --rm -i --privileged=true \
         -v /opt/pwx:/opt/pwx -v /etc/pwx:/etc/pwx \
-        portworx/px-runc:3.2.0 --upgrade
+        $latest_stable --upgrade
 
     if [ $? -ne 0 ]; then
-        echo "Portworx 3.2 OCI bundle 安装失败！" >&2
+        echo "Portworx OCI bundle 安装失败！" >&2
         return 1
     fi
 
     # 配置 Portworx 安装
     echo "正在配置 Portworx ..."
 
-    # 使用本机 IP 地址作为 etcd 地址
-    local etcd_address="etcd://$public_ip:2379"
-
     # 这里我们设置卷大小为 5GB
-    sudo /opt/pwx/bin/px-runc install -c "mintcat" -k $etcd_address -s $STORAGE_DEVICE \
+    sudo /opt/pwx/bin/px-runc install -c "mintcat" -k etcd://myetc.company.com:2379 -s $STORAGE_DEVICE \
         --volume-size 5Gi  # 设置卷大小为 5GB
 
     if [ $? -ne 0 ]; then
