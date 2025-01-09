@@ -14,7 +14,7 @@ deploy_docker_swarm_and_portworx_menu() {
                 deploy_docker_swarm
                 ;;
             2)
-                deploy_portworx_with_persistence
+                deploy_nfs_with_persistence
                 ;;
             0)
                 echo "退出菜单"
@@ -187,7 +187,7 @@ nfs_client_mount() {
 }
 
 # 主菜单
-nfs_server_and_client_menu() {
+deploy_nfs_with_persistence() {
     while true; do
         clear
         echo "==============================="
