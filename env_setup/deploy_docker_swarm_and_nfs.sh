@@ -54,6 +54,7 @@ deploy_docker_swarm() {
 SHARE_DIR="/mnt/nfs_share"
 NFS_CONFIG_FILE="/etc/exports"
 MOUNT_DIR="/mnt/nfs_mount"
+SERVER_IP_FILE="/etc/nfs_server_ip.txt"
 
 # 安装 NFS 服务器（根据操作系统选择）
 install_nfs_server() {
@@ -104,10 +105,38 @@ deploy_nfs_server() {
     configure_nfs
     echo "NFS 服务端已部署成功！"
 
-    # 获取服务端的 IP 地址并显示给客户端
+    # 获取服务端的 IP 地址并记录
     SERVER_IP=$(hostname -I | awk '{print $1}')
     echo "NFS 服务器的 IP 地址是：$SERVER_IP"
-    echo "客户端请使用此 IP 地址进行挂载。"
+    
+    # 保存服务器 IP 地址到文件
+    echo "$SERVER_IP" > "$SERVER_IP_FILE"
+    echo "已记录 NFS 服务器的 IP 地址：$SERVER_IP"
+}
+
+# 获取 NFS 服务器 IP 地址
+get_nfs_server_ip() {
+    if [ -f "$SERVER_IP_FILE" ]; then
+        cat "$SERVER_IP_FILE"
+    else
+        echo "NFS 服务器 IP 地址未记录！"
+        return 1
+    fi
+}
+
+# 更换 NFS 服务器 IP 地址
+change_nfs_server_ip() {
+    echo "请输入新的 NFS 服务器 IP 地址："
+    read -p "新的 NFS 服务器 IP: " NEW_SERVER_IP
+
+    if [ -z "$NEW_SERVER_IP" ]; then
+        echo "错误：没有提供新的 IP 地址，操作取消。"
+        return
+    fi
+
+    # 更新 IP 地址文件
+    echo "$NEW_SERVER_IP" > "$SERVER_IP_FILE"
+    echo "NFS 服务器的 IP 地址已更改为：$NEW_SERVER_IP"
 }
 
 # 添加 IP 地址到白名单
@@ -157,27 +186,36 @@ view_current_whitelist() {
 
 # NFS 客户端挂载
 nfs_client_mount() {
-    echo "请输入 NFS 服务器的 IP 地址："
-    read -p "NFS 服务器 IP: " NFS_SERVER_IP
-    if [ -z "$NFS_SERVER_IP" ]; then
+    # 获取服务器的 IP 地址
+    SERVER_IP=$(get_nfs_server_ip)
+    if [ $? -ne 0 ]; then
+        echo "未找到 NFS 服务器的 IP 地址，无法挂载！"
+        return
+    fi
+
+    echo "当前记录的 NFS 服务器 IP 地址是：$SERVER_IP"
+    echo "请输入当前 NFS 服务器的 IP 地址（如果服务器 IP 发生变化，请输入新 IP）："
+    read -p "NFS 服务器 IP: " NEW_SERVER_IP
+
+    if [ -z "$NEW_SERVER_IP" ]; then
         echo "错误：没有提供 NFS 服务器 IP，操作取消。"
         return
     fi
 
-    echo "请输入要挂载的本地目录（例如：/mnt/nfs_mount）："
-    read -p "挂载目录: " LOCAL_MOUNT_DIR
-    if [ -z "$LOCAL_MOUNT_DIR" ]; then
-        echo "错误：没有提供挂载目录，操作取消。"
-        return
-    fi
+    # 更新服务器 IP 地址
+    echo "$NEW_SERVER_IP" > "$SERVER_IP_FILE"
+    echo "已更新 NFS 服务器的 IP 地址：$NEW_SERVER_IP"
 
+    # 设置挂载路径
+    LOCAL_MOUNT_DIR="/mnt/nfs_mount"
     if [ ! -d "$LOCAL_MOUNT_DIR" ]; then
         mkdir -p "$LOCAL_MOUNT_DIR"
         echo "创建挂载目录: $LOCAL_MOUNT_DIR"
     fi
 
+    # 挂载 NFS
     echo "挂载 NFS 文件系统..."
-    mount -t nfs "$NFS_SERVER_IP:/mnt/nfs_share" "$LOCAL_MOUNT_DIR"
+    mount -t nfs "$NEW_SERVER_IP:$SHARE_DIR" "$LOCAL_MOUNT_DIR"
     
     if [ $? -eq 0 ]; then
         echo "NFS 挂载成功！"
@@ -193,28 +231,32 @@ deploy_nfs_with_persistence() {
         echo "==============================="
         echo "请选择要执行的操作："
         echo "1. 部署 NFS 服务端"
-        echo "2. 添加 IP 白名单"
-        echo "3. 删除 IP 白名单"
-        echo "4. 查看当前 NFS 白名单"
-        echo "5. 部署 NFS 客户端"
+        echo "2. 更换 NFS 服务器 IP 地址"
+        echo "3. 添加 IP 白名单"
+        echo "4. 删除 IP 白名单"
+        echo "5. 查看当前 NFS 白名单"
+        echo "6. 部署 NFS 客户端"
         echo "0. 退出"
         echo "==============================="
-        read -p "请输入操作的序号 (1/2/3/4/5/0): " choice
+        read -p "请输入操作的序号 (1/2/3/4/5/6/0): " choice
 
         case "$choice" in
             1)
                 deploy_nfs_server
                 ;;
             2)
-                add_ip_to_whitelist
+                change_nfs_server_ip
                 ;;
             3)
-                remove_ip_from_whitelist
+                add_ip_to_whitelist
                 ;;
             4)
-                view_current_whitelist
+                remove_ip_from_whitelist
                 ;;
             5)
+                view_current_whitelist
+                ;;
+            6)
                 nfs_client_mount
                 ;;
             0)
