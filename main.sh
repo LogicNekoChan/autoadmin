@@ -9,7 +9,7 @@
 . ./env_setup/port_forwarding.sh 
 . ./env_setup/production_setup.sh
 . ./env_setup/daily_service_deployment.sh   # 引用日常服务部署脚本
-. ./env_setup/deploy_docker_swarm_and_portworx.sh
+. ./env_setup/deploy_docker_swarm_and_nfs.sh
 
 show_main_menu() {
     while true; do
@@ -40,7 +40,7 @@ show_main_menu() {
             6) echo "进入 内网端口转发管理"; port_forwarding_menu ;; # 内网端口转发
             7) echo "进入 生产环境部署"; production_deployment_menu ;; # 生产环境部署
             8) echo "进入 日常服务部署"; daily_service_deployment_menu ;; # 日常服务部署
-            9) echo "进入 Docker-Swarm集群部署"; deploy_docker_swarm_and_portworx_menu ;;
+            9) echo "进入 Docker-Swarm集群部署"; deploy_docker_swarm_and_nfs_menu ;;
             10) echo "退出脚本"; exit 0 ;;                         # 退出脚本
             *) echo "无效选项，请重试"; sleep 2 ;;
         esac
