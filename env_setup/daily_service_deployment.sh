@@ -37,10 +37,12 @@ deploy_service() {
 
     case "$service_name" in
         "AdGuardHome - 广告过滤器")
-            docker run -d --name adguardhome -p 53:53 -p 3000:3000 adguard/adguardhome
+            # 使用卷映射
+            docker run -d --name adguardhome -p 53:53 -p 3000:3000 -v adguardhome_data:/opt/adguardhome/data adguard/adguardhome
             echo "AdGuardHome 服务已部署，访问地址：http://$(get_public_ip):3000"
             pause
             ;;
+
         "Alist - 文件管理工具")
             # 创建卷并映射
             docker volume create alist_volume
@@ -103,8 +105,10 @@ deploy_service() {
 
             pause
             ;;
+
         "Calibre Web - 电子书管理工具")
-            docker run -d --name calibre-web -p 8083:8083 lscr.io/linuxserver/calibre-web
+            # 使用卷映射
+            docker run -d --name calibre-web -p 8083:8083 -v calibre_web_data:/config lscr.io/linuxserver/calibre-web
             if [ $? -eq 0 ]; then
                 echo "Calibre Web 服务已部署，访问地址：http://$(get_public_ip):8083"
             else
@@ -112,16 +116,21 @@ deploy_service() {
             fi
             pause
             ;;
+
         "qBittorrent - 下载工具")
-            docker run -d --name qbittorrent -p 8080:8080 -p 6881:6881 lscr.io/linuxserver/qbittorrent
+            # 使用卷映射
+            docker run -d --name qbittorrent -p 8080:8080 -p 6881:6881 -v qbittorrent_config:/config -v qbittorrent_downloads:/downloads lscr.io/linuxserver/qbittorrent
             echo "qBittorrent 服务已部署，访问地址：http://$(get_public_ip):8080"
             pause
             ;;
+
         "Qinglong - 自动化脚本")
-            docker run -d --name qinglong -p 5700:5700 whyour/qinglong
+            # 使用卷映射
+            docker run -d --name qinglong -p 5700:5700 -v qinglong_config:/config whyour/qinglong
             echo "Qinglong 服务已部署，访问地址：http://$(get_public_ip):5700"
             pause
             ;;
+
         "Vaultwarden - 密码管理")
             # 提示用户输入数据库连接信息
             echo "请输入数据库连接信息："
@@ -160,37 +169,48 @@ deploy_service() {
 
             pause
             ;;
+
         "Photoprism - 照片管理工具")
-            docker run -d --name photoprism -p 2342:2342 photoprism/photoprism
+            # 使用卷映射
+            docker run -d --name photoprism -p 2342:2342 -v photoprism_data:/photoprism photoprism/photoprism
             echo "Photoprism 服务已部署，访问地址：http://$(get_public_ip):2342"
             pause
             ;;
+
         "Vocechat - 聊天工具")
-            docker run -d --name vocechat -p 3019:3000 privoce/vocechat-server:latest
+            # 使用卷映射
+            docker run -d --name vocechat -p 3019:3000 -v vocechat_config:/config privoce/vocechat-server:latest
             echo "Vocechat 服务已部署，访问地址：http://$(get_public_ip):3019"
             pause
             ;;
+
         "WordPress - 网站")
-            docker run -d --name wordpress -p 8089:80 wordpress
+            # 使用卷映射
+            docker run -d --name wordpress -p 8089:80 -v wordpress_wp_content:/var/www/html/wp-content wordpress
             echo "WordPress 服务已部署，访问地址：http://$(get_public_ip):8089"
             pause
             ;;
+
         "Synctv - 文件同步")
-            docker run -d --name synctv -p 8092:8080 synctvorg/synctv:latest
+            # 使用卷映射
+            docker run -d --name synctv -p 8092:8080 -v synctv_config:/config synctvorg/synctv:latest
             echo "Synctv 服务已部署，访问地址：http://$(get_public_ip):8092"
             pause
             ;;
+
         "Portainer - 容器管理工具")
+            # 使用卷映射
             docker run -d \
                 -p 9000:9000 \
                 -p 8000:8000 \
                 --restart always \
                 -v /var/run/docker.sock:/var/run/docker.sock \
-                -v /opt/docker/portainer-ce/data:/data \
+                -v portainer_data:/data \
                 --name portainer-ce portainer/portainer-ce
             echo "Portainer 服务已部署，访问地址：http://$(get_public_ip):9000"
             pause
             ;;
+
         *)
             echo "未知服务，请重新选择。" >&2
             ;;
