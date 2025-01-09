@@ -1,53 +1,3 @@
-deploy_docker_swarm_and_nfs_menu() {
-    while true; do
-        clear
-        echo "==============================="
-        echo "请选择要执行的操作："
-        echo "1. 部署 Docker Swarm 集群"
-        echo "2. 部署 Nfs 持久化存储"
-        echo "0. 退出"
-        echo "==============================="
-        read -p "请输入操作的序号 (1/2/0): " choice
-
-        case "$choice" in
-            1)
-                deploy_docker_swarm
-                ;;
-            2)
-                deploy_nfs_with_persistence
-                ;;
-            0)
-                echo "退出菜单"
-                break
-                ;;
-            *)
-                echo "无效选择，请重新输入"
-                ;;
-        esac
-        sleep 2
-    done
-}
-
-# 部署 Docker Swarm 集群
-deploy_docker_swarm() {
-    echo "正在部署 Docker Swarm 集群..."
-
-    # 检查是否已经是 Docker Swarm 集群
-    if docker info | grep -q "Swarm: active"; then
-        echo "Docker Swarm 已经处于活动状态。"
-        return
-    fi
-
-    # 初始化 Docker Swarm 集群
-    docker swarm init --advertise-addr "$(get_public_ip)"
-    if [ $? -eq 0 ]; then
-        echo "Docker Swarm 集群已成功初始化。"
-    else
-        echo "Docker Swarm 初始化失败！" >&2
-    fi
-    pause
-}
-
 #!/bin/bash
 
 # 设置 NFS 服务器的共享目录和配置文件
@@ -79,19 +29,28 @@ create_shared_directory() {
     fi
 }
 
-# 配置共享目录并重启 NFS 服务
+# 配置 NFS 共享目录并重启 NFS 服务
 configure_nfs() {
     echo "配置 NFS 共享目录：$SHARE_DIR"
+    
+    # 确保共享目录的权限和配置
+    chown -R nobody:nogroup "$SHARE_DIR"
+    chmod 777 "$SHARE_DIR"
+
+    # 配置 /etc/exports 文件
     echo "$SHARE_DIR *(rw,sync,no_root_squash,no_subtree_check)" > "$NFS_CONFIG_FILE"
     exportfs -ra
     systemctl restart nfs-kernel-server
+
+    # 输出配置确认
+    exportfs -v
 }
 
 # 配置防火墙规则
 configure_firewall() {
     NFS_PORT="2049"
     if [ -f /etc/debian_version ]; then
-        ufw allow from $1 to any port $NFS_PORT
+        ufw allow from "$1" to any port "$NFS_PORT"
     elif [ -f /etc/redhat-release ]; then
         firewall-cmd --permanent --add-rich-rule="rule family=ipv4 source address=$1 accept"
         firewall-cmd --reload
@@ -102,7 +61,14 @@ configure_firewall() {
 deploy_nfs_server() {
     install_nfs_server
     create_shared_directory
+
+    # 配置防火墙规则
+    echo "配置防火墙规则..."
+    configure_firewall "$1"   # 允许来自指定 IP 的访问
+
+    # 配置 NFS 共享目录
     configure_nfs
+
     echo "NFS 服务端已部署成功！"
 
     # 获取服务端的 IP 地址并记录
@@ -218,7 +184,7 @@ nfs_client_mount() {
         return
     fi
 
-    # 挂载 NFS
+    # 挂载 NFS，指定 NFS 版本
     echo "挂载 NFS 文件系统 $NEW_SERVER_IP:$SHARE_DIR 到 $LOCAL_MOUNT_DIR..."
     mount -t nfs -o nfsvers=4,rw,sync "$NEW_SERVER_IP:$SHARE_DIR" "$LOCAL_MOUNT_DIR"
 
@@ -231,54 +197,43 @@ nfs_client_mount() {
     fi
 }
 
+# 部署 Docker Swarm 集群
+deploy_docker_swarm() {
+    echo "正在部署 Docker Swarm 集群..."
+
+    # 检查是否已经是 Docker Swarm 集群
+    if docker info | grep -q "Swarm: active"; then
+        echo "Docker Swarm 已经处于活动状态。"
+        return
+    fi
+
+    # 初始化 Docker Swarm 集群
+    docker swarm init --advertise-addr "$(hostname -I | awk '{print $1}')"
+    if [ $? -eq 0 ]; then
+        echo "Docker Swarm 集群已成功初始化。"
+    else
+        echo "Docker Swarm 初始化失败！" >&2
+    fi
+}
+
 # 主菜单
-deploy_nfs_with_persistence() {
+deploy_docker_swarm_and_nfs_menu() {
     while true; do
         clear
         echo "==============================="
         echo "请选择要执行的操作："
-        echo "1. 部署 NFS 服务端"
-        echo "2. 更换 NFS 服务器 IP 地址"
-        echo "3. 添加 IP 白名单"
-        echo "4. 删除 IP 白名单"
-        echo "5. 查看当前 NFS 白名单"
-        echo "6. 部署 NFS 客户端"
+        echo "1. 部署 Docker Swarm 集群"
+        echo "2. 部署 NFS 持久化存储"
         echo "0. 退出"
         echo "==============================="
-        read -p "请输入操作的序号 (1/2/3/4/5/6/0): " choice
+        read -p "请输入操作的序号 (1/2/0): " choice
 
         case "$choice" in
-            1)
-                deploy_nfs_server
-                ;;
-            2)
-                change_nfs_server_ip
-                ;;
-            3)
-                add_ip_to_whitelist
-                ;;
-            4)
-                remove_ip_from_whitelist
-                ;;
-            5)
-                view_current_whitelist
-                ;;
-            6)
-                nfs_client_mount
-                ;;
-            0)
-                echo "退出菜单"
-                break
-                ;;
-            *)
-                echo "无效选择，请重新输入"
-                ;;
+            1) deploy_docker_swarm ;;
+            2) deploy_nfs_server "$1" ;;
+            0) exit ;;
+            *) echo "无效选项，请重新输入。" ;;
         esac
-        sleep 2
     done
 }
 
-# 暂停功能
-pause() {
-    read -p "按 Enter 键继续..."
-}
