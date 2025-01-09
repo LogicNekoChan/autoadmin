@@ -195,6 +195,14 @@ nfs_client_mount() {
         return
     fi
 
+    # 检查 NFS 服务器是否可达
+    echo "正在检查 NFS 服务器的可达性..."
+    ping -c 4 "$NEW_SERVER_IP" > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "错误：无法访问 NFS 服务器 $NEW_SERVER_IP，操作取消。"
+        return
+    fi
+
     # 设置挂载路径
     LOCAL_MOUNT_DIR="/mnt/nfs_mount"
     if [ ! -d "$LOCAL_MOUNT_DIR" ]; then
@@ -202,14 +210,24 @@ nfs_client_mount() {
         echo "创建挂载目录: $LOCAL_MOUNT_DIR"
     fi
 
+    # 检查 NFS 服务器的共享目录是否存在
+    echo "正在检查共享目录 $SHARE_DIR 是否存在..."
+    SHOW_SHARE=$(showmount -e "$NEW_SERVER_IP" 2>/dev/null | grep "$SHARE_DIR")
+    if [ -z "$SHOW_SHARE" ]; then
+        echo "错误：NFS 服务器上没有找到共享目录 $SHARE_DIR，操作取消。"
+        return
+    fi
+
     # 挂载 NFS
-    echo "挂载 NFS 文件系统..."
-    mount -t nfs "$NEW_SERVER_IP:$SHARE_DIR" "$LOCAL_MOUNT_DIR"
-    
+    echo "挂载 NFS 文件系统 $NEW_SERVER_IP:$SHARE_DIR 到 $LOCAL_MOUNT_DIR..."
+    mount -t nfs -o nfsvers=4,rw,sync "$NEW_SERVER_IP:$SHARE_DIR" "$LOCAL_MOUNT_DIR"
+
     if [ $? -eq 0 ]; then
         echo "NFS 挂载成功！"
     else
         echo "NFS 挂载失败！" >&2
+        echo "请检查 NFS 服务器和挂载选项。"
+        dmesg | tail -n 20   # 查看最近的内核日志
     fi
 }
 
