@@ -186,25 +186,14 @@ view_current_whitelist() {
 
 # NFS 客户端挂载
 nfs_client_mount() {
-    # 获取服务器的 IP 地址
-    SERVER_IP=$(get_nfs_server_ip)
-    if [ $? -ne 0 ]; then
-        echo "未找到 NFS 服务器的 IP 地址，无法挂载！"
-        return
-    fi
-
-    echo "当前记录的 NFS 服务器 IP 地址是：$SERVER_IP"
-    echo "请输入当前 NFS 服务器的 IP 地址（如果服务器 IP 发生变化，请输入新 IP）："
+    # 提示用户输入 NFS 服务器的 IP 地址
+    echo "请输入 NFS 服务器的 IP 地址："
     read -p "NFS 服务器 IP: " NEW_SERVER_IP
 
     if [ -z "$NEW_SERVER_IP" ]; then
         echo "错误：没有提供 NFS 服务器 IP，操作取消。"
         return
     fi
-
-    # 更新服务器 IP 地址
-    echo "$NEW_SERVER_IP" > "$SERVER_IP_FILE"
-    echo "已更新 NFS 服务器的 IP 地址：$NEW_SERVER_IP"
 
     # 设置挂载路径
     LOCAL_MOUNT_DIR="/mnt/nfs_mount"
