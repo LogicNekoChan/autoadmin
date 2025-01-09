@@ -1,4 +1,4 @@
-deploy_docker_swarm_and_portworx_menu() {
+deploy_docker_swarm_and_nfs_menu() {
     while true; do
         clear
         echo "==============================="
