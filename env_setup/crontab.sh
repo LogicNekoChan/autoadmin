@@ -10,25 +10,64 @@ list_cron_jobs() {
     if [ -z "$cron_jobs" ]; then
         echo "当前没有任何 Cron 任务。"
     else
-        # 使用 grep 和 nl 添加行号
+        # 使用 nl 添加行号
         echo "$cron_jobs" | nl
     fi
     pause
 }
 
-# 添加新任务
+# 添加新任务（交互式获取时间表达式）
 add_cron_job() {
-    read -p "请输入新的 Cron 任务时间表达式 (例如: '0 5 * * *'): " time_expr
-    read -p "请输入要执行的命令: " command
+    # 获取时间表达式
+    echo "请输入 Cron 任务的时间表达式："
+    
+    # 获取分钟
+    read -p "分钟 (0-59): " minute
+    while ! [[ "$minute" =~ ^[0-5]?[0-9]$ ]]; do
+        echo "无效的分钟值，请输入 0 到 59 之间的数字。"
+        read -p "分钟 (0-59): " minute
+    done
+    
+    # 获取小时
+    read -p "小时 (0-23): " hour
+    while ! [[ "$hour" =~ ^[0-1]?[0-9]$|^2[0-3]$ ]]; do
+        echo "无效的小时值，请输入 0 到 23 之间的数字。"
+        read -p "小时 (0-23): " hour
+    done
 
-    if [[ -z "$time_expr" || -z "$command" ]]; then
-        echo "时间表达式或命令不能为空！"
+    # 获取日期
+    read -p "日期 (1-31, * 表示任意): " day
+    while ! [[ "$day" =~ ^([1-9]|[12][0-9]|3[01]|\*)$ ]]; do
+        echo "无效的日期值，请输入 1 到 31 之间的数字，或 * 表示任意。"
+        read -p "日期 (1-31, * 表示任意): " day
+    done
+
+    # 获取月份
+    read -p "月份 (1-12, * 表示任意): " month
+    while ! [[ "$month" =~ ^([1-9]|1[0-2]|\*)$ ]]; do
+        echo "无效的月份值，请输入 1 到 12 之间的数字，或 * 表示任意。"
+        read -p "月份 (1-12, * 表示任意): " month
+    done
+
+    # 获取星期
+    read -p "星期 (0-6, * 表示任意，0=星期天): " week
+    while ! [[ "$week" =~ ^[0-6]$|^\*$ ]]; do
+        echo "无效的星期值，请输入 0 到 6 之间的数字，或 * 表示任意。"
+        read -p "星期 (0-6, * 表示任意，0=星期天): " week
+    done
+
+    # 获取要执行的命令
+    read -p "请输入要执行的命令: " command
+    if [[ -z "$command" ]]; then
+        echo "命令不能为空！"
         pause
         return
     fi
 
-    (crontab -l 2>/dev/null; echo "$time_expr $command") | crontab -
-    echo "新任务已添加：$time_expr $command"
+    # 构建 Cron 表达式并添加到 crontab
+    cron_expr="$minute $hour $day $month $week $command"
+    (crontab -l 2>/dev/null; echo "$cron_expr") | crontab -
+    echo "新任务已添加：$cron_expr"
     pause
 }
 
@@ -62,7 +101,7 @@ delete_cron_job() {
     fi
 
     # 删除任务
-    crontab -l | grep -vF "$job_to_remove" | crontab -
+    (crontab -l | grep -vF "$job_to_remove") | crontab -
     echo "任务已删除：$job_to_remove"
     pause
 }
