@@ -53,6 +53,7 @@ deploy_docker_swarm() {
 # 设置 NFS 服务器的共享目录和配置文件
 SHARE_DIR="/mnt/nfs_share"
 NFS_CONFIG_FILE="/etc/exports"
+MOUNT_DIR="/mnt/nfs_mount"
 
 # 安装 NFS 服务器（根据操作系统选择）
 install_nfs_server() {
@@ -87,15 +88,26 @@ configure_nfs() {
 
 # 配置防火墙规则
 configure_firewall() {
-    # 获取 NFS 服务端口
     NFS_PORT="2049"
-
     if [ -f /etc/debian_version ]; then
         ufw allow from $1 to any port $NFS_PORT
     elif [ -f /etc/redhat-release ]; then
         firewall-cmd --permanent --add-rich-rule="rule family=ipv4 source address=$1 accept"
         firewall-cmd --reload
     fi
+}
+
+# 部署 NFS 服务端
+deploy_nfs_server() {
+    install_nfs_server
+    create_shared_directory
+    configure_nfs
+    echo "NFS 服务端已部署成功！"
+
+    # 获取服务端的 IP 地址并显示给客户端
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+    echo "NFS 服务器的 IP 地址是：$SERVER_IP"
+    echo "客户端请使用此 IP 地址进行挂载。"
 }
 
 # 添加 IP 地址到白名单
@@ -115,12 +127,22 @@ add_ip_to_whitelist() {
 
 # 删除 IP 地址从白名单
 remove_ip_from_whitelist() {
-    echo "请输入要删除的 IP 地址或 IP 范围（例如：192.168.1.100 或 192.168.1.0/24）："
-    read -p "请输入要删除的 IP 地址或范围: " REMOVE_IP
+    echo "当前的 NFS 白名单："
+    grep "$SHARE_DIR" "$NFS_CONFIG_FILE" | nl -s". "   # 按序号列出白名单
+
+    # 提示用户选择删除的 IP
+    echo "请输入要删除的白名单序号："
+    read -p "选择序号: " REMOVE_INDEX
+
+    # 获取对应序号的 IP 地址行
+    REMOVE_IP=$(grep "$SHARE_DIR" "$NFS_CONFIG_FILE" | sed -n "${REMOVE_INDEX}p" | awk '{print $1}')
+    
     if [ -z "$REMOVE_IP" ]; then
-        echo "错误：没有提供 IP 地址或范围，操作取消。"
+        echo "错误：没有找到对应的 IP 地址，操作取消。"
         return
     fi
+
+    # 删除对应的 IP 地址
     echo "删除 $REMOVE_IP 从 NFS 白名单"
     sed -i "/$REMOVE_IP/d" "$NFS_CONFIG_FILE"
     exportfs -ra
@@ -133,40 +155,79 @@ view_current_whitelist() {
     grep "$SHARE_DIR" "$NFS_CONFIG_FILE"
 }
 
-# 主菜单函数
-nfs_server_management_menu() {
-    echo "欢迎使用 NFS 服务器管理脚本"
-    PS3="请选择一个操作: "
-    select opt in "部署 NFS 服务器" "添加 IP 白名单" "删除 IP 白名单" "查看当前白名单" "退出"; do
-        case $opt in
-            "部署 NFS 服务器")
-                install_nfs_server
-                create_shared_directory
-                configure_nfs
-                echo "NFS 服务器部署完成!"
+# NFS 客户端挂载
+nfs_client_mount() {
+    echo "请输入 NFS 服务器的 IP 地址："
+    read -p "NFS 服务器 IP: " NFS_SERVER_IP
+    if [ -z "$NFS_SERVER_IP" ]; then
+        echo "错误：没有提供 NFS 服务器 IP，操作取消。"
+        return
+    fi
+
+    echo "请输入要挂载的本地目录（例如：/mnt/nfs_mount）："
+    read -p "挂载目录: " LOCAL_MOUNT_DIR
+    if [ -z "$LOCAL_MOUNT_DIR" ]; then
+        echo "错误：没有提供挂载目录，操作取消。"
+        return
+    fi
+
+    if [ ! -d "$LOCAL_MOUNT_DIR" ]; then
+        mkdir -p "$LOCAL_MOUNT_DIR"
+        echo "创建挂载目录: $LOCAL_MOUNT_DIR"
+    fi
+
+    echo "挂载 NFS 文件系统..."
+    mount -t nfs "$NFS_SERVER_IP:/mnt/nfs_share" "$LOCAL_MOUNT_DIR"
+    
+    if [ $? -eq 0 ]; then
+        echo "NFS 挂载成功！"
+    else
+        echo "NFS 挂载失败！" >&2
+    fi
+}
+
+# 主菜单
+nfs_server_and_client_menu() {
+    while true; do
+        clear
+        echo "==============================="
+        echo "请选择要执行的操作："
+        echo "1. 部署 NFS 服务端"
+        echo "2. 添加 IP 白名单"
+        echo "3. 删除 IP 白名单"
+        echo "4. 查看当前 NFS 白名单"
+        echo "5. 部署 NFS 客户端"
+        echo "0. 退出"
+        echo "==============================="
+        read -p "请输入操作的序号 (1/2/3/4/5/0): " choice
+
+        case "$choice" in
+            1)
+                deploy_nfs_server
                 ;;
-            "添加 IP 白名单")
+            2)
                 add_ip_to_whitelist
                 ;;
-            "删除 IP 白名单")
+            3)
                 remove_ip_from_whitelist
                 ;;
-            "查看当前白名单")
+            4)
                 view_current_whitelist
                 ;;
-            "退出")
-                echo "退出脚本。"
+            5)
+                nfs_client_mount
+                ;;
+            0)
+                echo "退出菜单"
                 break
                 ;;
             *)
-                echo "无效的选项，请重新选择。"
+                echo "无效选择，请重新输入"
                 ;;
         esac
+        sleep 2
     done
 }
-
-
-
 
 # 暂停功能
 pause() {
