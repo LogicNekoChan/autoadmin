@@ -61,7 +61,7 @@ install_nps() {
     sed -i "s/^web_ip=.*$/web_ip=${web_ip}/" conf/nps.conf
     sed -i "s/^auth_crypt_key=.*$/auth_crypt_key=${auth_crypt_key}/" conf/nps.conf
 
-    # 运行 Docker 容器
+    # 运行 Docker 容器，映射配置文件目录
     docker run -d --name nps --net=host -v "$NPS_DIR/conf":/conf --restart=always yisier1/nps || { echo "启动 NPS 容器失败"; exit 1; }
 
     # 显示访问地址并提示用户按 Enter 键退出
@@ -113,6 +113,9 @@ services:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
 EOF
+
+    # 创建 WireGuard Docker 卷
+    docker volume create wireguard_config_volume
 
     # 运行 WireGuard-Easy Docker 容器
     cd /root/wireguard
