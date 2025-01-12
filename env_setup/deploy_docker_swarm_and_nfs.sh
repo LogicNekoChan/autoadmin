@@ -142,7 +142,7 @@ nfs_client_mount() {
 }
 
 # 主菜单
-deploy_nfs_with_persistence() {
+deploy_docker_swarm_and_nfs_menu() {
         while true; do
                 clear
                 echo "==============================="
