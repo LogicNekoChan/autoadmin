@@ -95,6 +95,20 @@ nfs_client_mount() {
                 return
         fi
 
+        # 检查并安装必要工具
+        if ! command -v showmount > /dev/null; then
+                echo "正在安装必要工具..."
+                if [ -f /etc/debian_version ]; then
+                        apt-get update
+                        apt-get install -y nfs-common
+                elif [ -f /etc/redhat-release ]; then
+                        yum install -y nfs-utils
+                else
+                        echo "未知系统，无法自动安装工具。请手动安装 NFS 客户端工具。"
+                        return
+                fi
+        fi
+
         # 检查 NFS 服务器是否可达
         ping -c 4 "$SERVER_IP" > /dev/null 2>&1
         if [ $? -ne 0 ]; then
@@ -128,7 +142,7 @@ nfs_client_mount() {
 }
 
 # 主菜单
-deploy_docker_swarm_and_nfs_menu() {
+deploy_nfs_with_persistence() {
         while true; do
                 clear
                 echo "==============================="
