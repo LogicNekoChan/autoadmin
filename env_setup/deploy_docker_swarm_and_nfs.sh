@@ -116,10 +116,24 @@ nfs_client_mount() {
                 return
         fi
 
+        # 输入共享目录
+        read -p "请输入 NFS 共享目录路径 (例如：/mnt/nfs_mount): " SHARE_DIR
+        if [ -z "$SHARE_DIR" ]; then
+                echo "错误：未提供共享目录路径。"
+                return
+        fi
+
         # 检查共享目录是否存在
         echo "正在检查共享目录是否存在..."
         if ! showmount -e "$SERVER_IP" | grep -q "$SHARE_DIR"; then
                 echo "错误：NFS 服务器上未找到共享目录 $SHARE_DIR。"
+                return
+        fi
+
+        # 输入本地挂载目录
+        read -p "请输入本地挂载目录 (例如：/mnt/nfs_mount_local): " MOUNT_DIR
+        if [ -z "$MOUNT_DIR" ]; then
+                echo "错误：未提供本地挂载目录。"
                 return
         fi
 
@@ -129,7 +143,7 @@ nfs_client_mount() {
                 echo "创建挂载目录: $MOUNT_DIR"
         fi
 
-        # 挂载共享目录
+        # 挂载 NFS 共享目录
         echo "挂载 NFS 共享目录..."
         mount -t nfs -o nfsvers=4 "$SERVER_IP:$SHARE_DIR" "$MOUNT_DIR"
 
@@ -138,6 +152,22 @@ nfs_client_mount() {
         else
                 echo "NFS 挂载失败，请检查日志。"
                 dmesg | tail -n 20
+                return
+        fi
+
+        # 创建 Docker 本地卷，挂载 NFS 共享目录
+        echo "创建 Docker 卷..."
+        docker volume create --driver local \
+          --opt type=nfs \
+          --opt o=addr="$SERVER_IP",rw \
+          --opt device=":$SHARE_DIR" \
+          nfsdata
+
+        if [ $? -eq 0 ]; then
+                echo "Docker 卷创建成功：nfsdata"
+        else
+                echo "Docker 卷创建失败，请检查日志。"
+                return
         fi
 }
 
