@@ -130,9 +130,6 @@ set_scheduled_backup() {
                 exit 1
             fi
 
-            # 获取容器服务名称
-            container_name=$(docker inspect --format '{{.Name}}' "$container_id" | sed 's/^\///')
-
             # 设置备份路径
             backup_path="/root/backup"
             echo "备份容器的映射目录/卷到 $backup_path ..."
@@ -140,8 +137,8 @@ set_scheduled_backup() {
             # 创建备份目录
             mkdir -p "$backup_path"
 
-            # 打包容器映射的目录和卷，文件名包含容器服务名称和日期
-            backup_file="$backup_path/${container_name}_backup_$(date +%Y%m%d%H%M%S).tar.gz"
+            # 打包容器映射的目录和卷
+            backup_file="$backup_path/container_backup_$(date +%Y%m%d%H%M%S).tar.gz"
             tar -czf "$backup_file" $mounts || {
                 echo "备份失败，请检查容器映射的目录或卷。"
                 exit 1
@@ -199,9 +196,6 @@ set_scheduled_backup() {
                 exit 1
             fi
 
-            # 获取容器服务名称
-            container_name=$(docker inspect --format '{{.Name}}' "$container_id" | sed 's/^\///')
-
             # WebDAV 备份路径
             read -p "请输入 WebDAV 备份路径 (例如 /backup/): " webdav_path
 
@@ -234,7 +228,6 @@ EOL
             ;;
     esac
 }
-
 
 # 删除定期备份任务
 delete_scheduled_backup() {
@@ -365,7 +358,7 @@ backup_container_to_webdav() {
     done
 }
 
-#恢复容器
+# 恢复容器
 restore_container_from_backup() {
     BACKUP_DIR="/root/backup"  # 备份路径
 
@@ -446,11 +439,11 @@ restore_container_from_backup() {
     # 恢复数据卷数据
     for volume in $volumes; do
         # 获取数据卷的挂载路径
-        volume_path="/var/lib/docker/volumes/$volume/_data"
+        volume_path=$(docker volume inspect --format '{{.Mountpoint}}' "$volume")
         if [ -d "$volume_path" ]; then
             echo "恢复卷 $volume 数据到目录 $volume_path"
-            # 解压备份文件到卷的挂载路径，并移除不需要的路径层级
-            tar --strip-components=6 -xvzf "$selected_backup" -C "$volume_path" || {
+            # 解压备份文件到卷的挂载路径
+            tar -xvzf "$selected_backup" -C "$volume_path" || {
                 echo "恢复卷 $volume 数据失败，退出。"
                 exit 1
             }
@@ -463,8 +456,7 @@ restore_container_from_backup() {
     for mount in $mounts; do
         if [ -d "$mount" ]; then
             echo "恢复挂载目录 $mount"
-            # 解压备份文件到挂载目录，并移除不需要的路径层级
-            tar --strip-components=6 -xvzf "$selected_backup" -C "$mount" || {
+            tar -xvzf "$selected_backup" -C "$mount" || {
                 echo "恢复挂载目录 $mount 数据失败，退出。"
                 exit 1
             }
