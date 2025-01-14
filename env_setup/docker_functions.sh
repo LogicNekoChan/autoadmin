@@ -358,7 +358,7 @@ backup_container_to_webdav() {
     done
 }
 
-# 恢复容器
+#恢复容器
 restore_container_from_backup() {
     BACKUP_DIR="/root/backup"  # 备份路径
 
@@ -439,11 +439,11 @@ restore_container_from_backup() {
     # 恢复数据卷数据
     for volume in $volumes; do
         # 获取数据卷的挂载路径
-        volume_path=$(docker volume inspect --format '{{.Mountpoint}}' "$volume")
+        volume_path="/var/lib/docker/volumes/$volume/_data"
         if [ -d "$volume_path" ]; then
             echo "恢复卷 $volume 数据到目录 $volume_path"
-            # 解压备份文件到卷的挂载路径
-            tar -xvzf "$selected_backup" -C "$volume_path" || {
+            # 解压备份文件到卷的挂载路径，并移除不需要的路径层级
+            tar --strip-components=6 -xvzf "$selected_backup" -C "$volume_path" || {
                 echo "恢复卷 $volume 数据失败，退出。"
                 exit 1
             }
@@ -456,7 +456,8 @@ restore_container_from_backup() {
     for mount in $mounts; do
         if [ -d "$mount" ]; then
             echo "恢复挂载目录 $mount"
-            tar -xvzf "$selected_backup" -C "$mount" || {
+            # 解压备份文件到挂载目录，并移除不需要的路径层级
+            tar --strip-components=6 -xvzf "$selected_backup" -C "$mount" || {
                 echo "恢复挂载目录 $mount 数据失败，退出。"
                 exit 1
             }
