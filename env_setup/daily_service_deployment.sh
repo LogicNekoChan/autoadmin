@@ -149,6 +149,3 @@ deploy_service() {
         *) echo "无效选项";;
     esac
 }
-
-# 主程序
-deploy_service
