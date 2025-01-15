@@ -69,7 +69,7 @@ deploy_nginx_proxy_manager() {
 # 部署 Vaultwarden
 deploy_vaultwarden() {
     echo "部署 Vaultwarden..."
-    docker run -d --name vaultwarden -p 86:80 -e DATABASE_URL=mysql://bitwarden:your_password@postgres:5432/vaultwarden_db -v vaultwarden_data:/data vaultwarden/server:latest
+    docker run -d --name vaultwarden -p 86:80 -e DATABASE_URL=mysql://bitwarden:your_password@host:5432/bitwarden -v vaultwarden_data:/data vaultwarden/server:latest
     echo "Vaultwarden 服务已部署，访问地址：http://$(get_public_ip):86"
     pause
 }
