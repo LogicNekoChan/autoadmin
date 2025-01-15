@@ -122,6 +122,14 @@ deploy_portainer() {
     pause
 }
 
+# 部署 Syncthing
+deploy_syncthing() {
+    echo "部署 Syncthing..."
+    docker run -d --name syncthing -p 8384:8384 -v syncthing_data:/var/syncthing syncthing/syncthing
+    echo "Syncthing 服务已部署，访问地址：http://$(get_public_ip):8384"
+    pause
+}
+ 
 # 选择部署的服务
 daily_service_deployment_menu() {
     echo "请选择要部署的服务:"
@@ -138,9 +146,10 @@ daily_service_deployment_menu() {
     echo "11. PostgreSQL"
     echo "12. Redis"
     echo "13. Nextcloud"
-    echo "14. Portainer"  # 添加 Portainer 选项
+    echo "14. Portainer"
+    echo "15. Syncthing"  # 添加 Syncthing 选项
     read -p "请输入选项数字: " choice
-
+ 
     case $choice in
         1) deploy_mcserver ;;
         2) deploy_filebrowser ;;
@@ -155,7 +164,9 @@ daily_service_deployment_menu() {
         11) deploy_postgresql ;;
         12) deploy_redis ;;
         13) deploy_nextcloud ;;
-        14) deploy_portainer ;;  # 添加 Portainer 部署调用
+        14) deploy_portainer ;;
+        15) deploy_syncthing ;;  # 添加 Syncthing 部署调用
         *) echo "无效选项";;
     esac
 }
+ 
