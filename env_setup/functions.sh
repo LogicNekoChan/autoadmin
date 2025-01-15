@@ -8,9 +8,10 @@ system_maintenance_menu() {
                 echo "      系统维护管理菜单       "
                 echo "==============================="
                 echo "1. 自动化系统初始化"
-                echo "2. 返回主菜单"
+                echo "2. 更换最快的软件源"
+                echo "3. 返回主菜单"
                 echo "==============================="
-                read -p "请选择一个选项 (1-2): " deploy_choice
+                read -p "请选择一个选项 (1-3): " deploy_choice
 
                 case $deploy_choice in
                         1)
@@ -18,6 +19,10 @@ system_maintenance_menu() {
                                 pause
                                 ;;
                         2)
+                                change_to_fastest_mirror
+                                pause
+                                ;;
+                        3)
                                 return
                                 ;;
                         *)
@@ -46,8 +51,6 @@ quick_setup() {
         echo "1. 更新系统并安装基本依赖..."
         case $os_type in
                 ubuntu | debian)
-                        # 自动检测最快的软件源
-                        change_to_fastest_mirror
                         sudo apt update -y && sudo apt install -y neofetch vim jq curl resolvconf && sudo apt upgrade rclone -y
                         ;;
                 *)
