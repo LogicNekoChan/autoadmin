@@ -115,7 +115,7 @@ deploy_nextcloud() {
 }
 
 # 选择部署的服务
-deploy_service() {
+daily_service_deployment_menu() {
     echo "请选择要部署的服务:"
     echo "1. Minecraft 服务器"
     echo "2. 文件浏览器"
