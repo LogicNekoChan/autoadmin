@@ -8,10 +8,9 @@ system_maintenance_menu() {
                 echo "      系统维护管理菜单       "
                 echo "==============================="
                 echo "1. 自动化系统初始化"
-                echo "2. 更换软件源为最快镜像"
-                echo "3. 返回主菜单"
+                echo "2. 返回主菜单"
                 echo "==============================="
-                read -p "请选择一个选项 (1-3): " deploy_choice
+                read -p "请选择一个选项 (1-2): " deploy_choice
 
                 case $deploy_choice in
                         1)
@@ -19,10 +18,6 @@ system_maintenance_menu() {
                                 pause
                                 ;;
                         2)
-                                change_apt_mirror
-                                pause
-                                ;;
-                        3)
                                 return
                                 ;;
                         *)
@@ -31,29 +26,6 @@ system_maintenance_menu() {
                                 ;;
                 esac
         done
-}
-
-# 自动更换软件源为最快镜像
-change_apt_mirror() {
-        echo "正在检测最快的软件源..."
-        
-        # 备份当前的软件源列表
-        sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
-        echo "当前软件源已备份为 /etc/apt/sources.list.bak"
-
-        # 获取最快的镜像地址
-        fastest_mirror=$(sudo apt update && sudo apt-cache search apt | grep -i 'mirror' | head -n 1 | awk '{print $1}')
-        
-        # 修改 /etc/apt/sources.list 文件为最快镜像
-        if [ -n "$fastest_mirror" ]; then
-                sudo sed -i "s|http://.*.ubuntu.com|$fastest_mirror|g" /etc/apt/sources.list
-                echo "已将软件源更换为: $fastest_mirror"
-        else
-                echo "未能自动检测到最快镜像，请手动更改软件源。"
-        fi
-        
-        # 更新 apt 软件包信息
-        sudo apt update
 }
 
 # 快速部署基础环境
@@ -74,6 +46,8 @@ quick_setup() {
         echo "1. 更新系统并安装基本依赖..."
         case $os_type in
                 ubuntu | debian)
+                        # 自动检测最快的软件源
+                        change_to_fastest_mirror
                         sudo apt update -y && sudo apt install -y neofetch vim jq curl resolvconf && sudo apt upgrade rclone -y
                         ;;
                 *)
@@ -100,6 +74,22 @@ quick_setup() {
         install_docker
 
         echo "基础环境部署已完成！"
+}
+
+# 自动检测最快的软件源并更换
+change_to_fastest_mirror() {
+        echo "正在检测并切换到最快的软件源..."
+        
+        # 备份现有的软件源文件
+        sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
+
+        # 使用最快的镜像源
+        sudo apt-get install -y netselect-apt
+        sudo netselect-apt
+        
+        # 更新 apt 缓存
+        sudo apt update -y
+        echo "最快的软件源已设置并更新完毕。"
 }
 
 # 启用 BBR 模式
@@ -177,4 +167,3 @@ install_docker() {
 pause() {
         read -p "按 Enter 键继续..."
 }
-
