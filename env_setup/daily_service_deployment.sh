@@ -114,6 +114,14 @@ deploy_nextcloud() {
     pause
 }
 
+# 部署 Portainer
+deploy_portainer() {
+    echo "部署 Portainer..."
+    docker run -d --name portainer -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock portainer/portainer-ce:latest
+    echo "Portainer 已部署，访问地址：http://$(get_public_ip):9000"
+    pause
+}
+
 # 选择部署的服务
 daily_service_deployment_menu() {
     echo "请选择要部署的服务:"
@@ -130,6 +138,7 @@ daily_service_deployment_menu() {
     echo "11. PostgreSQL"
     echo "12. Redis"
     echo "13. Nextcloud"
+    echo "14. Portainer"  # 添加 Portainer 选项
     read -p "请输入选项数字: " choice
 
     case $choice in
@@ -146,6 +155,7 @@ daily_service_deployment_menu() {
         11) deploy_postgresql ;;
         12) deploy_redis ;;
         13) deploy_nextcloud ;;
+        14) deploy_portainer ;;  # 添加 Portainer 部署调用
         *) echo "无效选项";;
     esac
 }
