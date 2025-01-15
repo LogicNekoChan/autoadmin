@@ -25,6 +25,7 @@ services=(
     "WordPress - 网站"
     "Synctv - 文件同步"
     "Portainer - 容器管理工具"
+    "Mailu - 邮件服务"
 )
 
 # 部署服务函数
@@ -167,6 +168,40 @@ deploy_service() {
                 echo "Vaultwarden 服务部署失败！" >&2
             fi
 
+            pause
+            ;;
+
+        "Mailu - 邮件服务")
+            # 获取用户输入
+            echo "请输入 Mailu 配置："
+            read -p "邮件域名 (例如 mail.example.com): " MAILU_DOMAIN
+            read -p "管理员密码： " MAILU_ADMIN_PASSWORD
+            read -p "数据库地址 (默认: localhost): " DB_HOST
+            DB_HOST=${DB_HOST:-localhost}
+
+            read -p "数据库端口 (默认: 3306): " DB_PORT
+            DB_PORT=${DB_PORT:-3306}
+
+            read -p "数据库用户名 (默认: root): " DB_USER
+            DB_USER=${DB_USER:-root}
+
+            read -sp "数据库密码： " DB_PASS
+            echo
+            read -p "数据库名称 (默认: mailu): " DB_NAME
+            DB_NAME=${DB_NAME:-mailu}
+
+            # 设置环境变量
+            echo "MAILU_DOMAIN=$MAILU_DOMAIN" > .env
+            echo "MAILU_ADMIN_PASSWORD=$MAILU_ADMIN_PASSWORD" >> .env
+            echo "DB_HOST=$DB_HOST" >> .env
+            echo "DB_PORT=$DB_PORT" >> .env
+            echo "DB_USER=$DB_USER" >> .env
+            echo "DB_PASS=$DB_PASS" >> .env
+            echo "DB_NAME=$DB_NAME" >> .env
+
+            # 启动 Mailu 服务
+            docker-compose up -d
+            echo "Mailu 邮件服务已部署，访问地址：http://$(get_public_ip):80"
             pause
             ;;
 
