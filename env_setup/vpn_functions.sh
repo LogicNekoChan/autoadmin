@@ -14,7 +14,7 @@ deploy_x_ui() {
 version: '3'
 services:
   xui:
-    image: enwaiax/x-ui:alpha-zh
+    image: enwaiax/x-ui
     container_name: xui
     volumes:
       - xui_db:/etc/x-ui
