@@ -169,7 +169,6 @@ services:
     environment:
       - PUID=0
       - PGID=0
-      - DATABASE_URL=postgresql://vaultwarden_user:your_password@postgres:5432/vaultwarden_db
 
   # Watchtower - 自动更新容器
   watchtower:
