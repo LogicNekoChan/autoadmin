@@ -9,8 +9,8 @@ system_maintenance_menu() {
                 echo "==============================="
                 echo "1. 自动化系统初始化"
                 echo "2. 更换最快的软件源"
-                echo "3. 返回主菜单"
-                echo "4. 创建 Docker 网络 mintcat (自定义配置)"
+                echo "3. 创建 Docker 网络 mintcat (自定义配置)"
+                echo "4. 返回主菜单"
                 echo "==============================="
                 read -p "请选择一个选项 (1-4): " deploy_choice
 
@@ -24,11 +24,11 @@ system_maintenance_menu() {
                                 pause
                                 ;;
                         3)
-                                return
-                                ;;
-                        4)
                                 create_docker_network_mintcat_custom
                                 pause
+                                ;;
+                        4)
+                                return
                                 ;;
                         *)
                                 echo "无效选项，请重试。"
@@ -174,14 +174,14 @@ install_docker() {
 # 创建 Docker 网络 mintcat (自定义配置)
 create_docker_network_mintcat_custom() {
         echo "正在创建 Docker 网络 mintcat (自定义配置)..."
-        docker network create \
+        NETWORK_ID=$(docker network create \
             --driver bridge \
             --subnet=172.20.0.0/16 \
             --gateway=172.20.0.1 \
             --ip-range=172.20.10.128/25 \
-            mintcat
+            mintcat)
 
-        if docker network inspect mintcat > /dev/null 2>&1; then
+        if [ -n "$NETWORK_ID" ]; then
                 echo "Docker 网络 mintcat (自定义配置) 创建成功。"
                 docker network inspect mintcat
         else
@@ -194,4 +194,3 @@ create_docker_network_mintcat_custom() {
 pause() {
         read -p "按 Enter 键继续..."
 }
-
