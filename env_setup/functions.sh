@@ -195,5 +195,3 @@ pause() {
         read -p "按 Enter 键继续..."
 }
 
-# 执行系统维护管理菜单
-system_maintenance_menu
