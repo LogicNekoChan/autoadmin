@@ -270,9 +270,3 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-
-  # Synctv - 文件同步
-  synctv:
-    image: 'synctvorg/synctv:latest'
-    container_name: synctv
-    restart: unless-stopped
