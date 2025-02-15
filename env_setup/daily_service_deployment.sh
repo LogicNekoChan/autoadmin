@@ -12,13 +12,19 @@ get_public_ip() {
 # 下载并解析 Docker Compose YAML 文件，提取容器名称
 get_container_names() {
     # 下载docker-compose.yaml文件
+    echo "正在下载 docker-compose.yaml 文件..."
     curl -s -o docker_compose.yaml https://raw.githubusercontent.com/LogicNekoChan/autoadmin/refs/heads/main/env_setup/docker_compose.yaml
+    if [ $? -ne 0 ]; then
+        echo "文件下载失败，请检查网络连接。" >&2
+        exit 1
+    fi
+    echo "文件下载完毕。"
 
     # 将 YAML 转换为 JSON，再用 jq 解析服务名称
     container_names=$(python3 -c 'import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin.read())))' < docker_compose.yaml | jq -r '.services | keys[]')
 
     if [ -z "$container_names" ]; then
-        echo "没有找到容器服务!"
+        echo "没有找到容器服务!" >&2
         exit 1
     fi
 
@@ -32,10 +38,16 @@ deploy_service() {
     # 获取服务的docker-compose配置
     docker_compose_file=$(python3 -c 'import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin.read())))' < docker_compose.yaml | jq -r ".services.\"$service_name\"")
 
+    if [ -z "$docker_compose_file" ]; then
+        echo "无法找到服务 '$service_name' 的配置。" >&2
+        exit 1
+    fi
+
     # 创建临时文件，写入docker-compose配置
     echo "$docker_compose_file" > temp_docker_compose.yml
 
     # 使用docker-compose部署服务
+    echo "正在部署 '$service_name' 服务..."
     docker-compose -f temp_docker_compose.yml up -d
 
     if [ $? -eq 0 ]; then
@@ -83,3 +95,6 @@ daily_service_deployment_menu() {
 pause() {
     read -p "按 Enter 键继续..."
 }
+
+# 主程序
+daily_service_deployment_menu
