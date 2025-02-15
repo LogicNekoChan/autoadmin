@@ -270,3 +270,31 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+
+# 持久化存储卷
+volumes:
+  portainer_data:
+  mcserver_data:
+  adguardhome_work:
+  adguardhome_conf:
+  alist_data:
+  alist_config:
+  website_data:
+  mysql_data:
+  vhost:
+  calibre_web_data:
+  calibre_library:
+  kodbox_data:
+  nginx_data:
+  letsencrypt:
+  qbittorrent_config:
+  qbittorrent_downloads:
+  qinglong_data:
+  vaultwarden_data:
+  wireguard:
+  photoprism_data:
+  xui_db:
+  xui_cert:
+  nextcloud:
+  redis_data:
+
