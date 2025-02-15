@@ -170,5 +170,3 @@ install_docker() {
 pause() {
         read -p "按 Enter 键继续..."
 }
-
-system_maintenance_menu
