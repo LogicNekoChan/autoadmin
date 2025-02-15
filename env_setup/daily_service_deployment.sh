@@ -32,8 +32,8 @@ deploy_service() {
     # 获取服务的docker-compose配置
     docker_compose_file=$(python3 -c 'import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin.read())))' < docker_compose.yaml | jq -r ".services.\"$service_name\"")
 
-    # 创建临时文件，写入docker-compose配置
-    echo "$docker_compose_file" > temp_docker_compose.yml
+    # 临时文件创建并过滤错误格式的volumes
+    echo "$docker_compose_file" | jq 'del(.volumes) | .volumes = []' > temp_docker_compose.yml
 
     # 使用docker-compose部署服务
     docker-compose -f temp_docker_compose.yml up -d
@@ -83,3 +83,6 @@ daily_service_deployment_menu() {
 pause() {
     read -p "按 Enter 键继续..."
 }
+
+# 执行主程序
+daily_service_deployment_menu
