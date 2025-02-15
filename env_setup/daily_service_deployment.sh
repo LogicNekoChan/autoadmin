@@ -1,16 +1,5 @@
 #!/bin/bash
 
-# 引用 functions.sh、docker_functions.sh 和 crontab.sh 等文件
-. ./env_setup/functions.sh
-. ./env_setup/docker_functions.sh
-. ./env_setup/crontab.sh
-. ./env_setup/vpn_functions.sh
-. ./env_setup/webdav_functions.sh
-. ./env_setup/port_forwarding.sh 
-. ./env_setup/production_setup.sh
-# . ./env_setup/daily_service_deployment.sh   # 注释掉原有的引用行，我们将内容直接复制进来
-. ./env_setup/deploy_docker_swarm_and_nfs.sh
-
 #### 日常服务部署脚本开始 ####
 #  复制粘贴 daily_service_deployment.sh 的全部内容到这里
 
