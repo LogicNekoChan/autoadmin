@@ -84,5 +84,4 @@ pause() {
     read -p "按 Enter 键继续..."
 }
 
-# 执行主程序
-daily_service_deployment_menu
+
