@@ -83,6 +83,3 @@ daily_service_deployment_menu() {
 pause() {
     read -p "按 Enter 键继续..."
 }
-
-# 调用主函数
-daily_service_deployment_menu
