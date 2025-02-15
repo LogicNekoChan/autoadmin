@@ -135,3 +135,6 @@ if ! command -v docker compose >/dev/null 2>&1; then
     echo "请先安装 Docker Compose，本脚本依赖 Docker Compose v2 版本。" >&2
     exit 1
 fi
+
+# 运行主菜单函数
+daily_service_deployment_menu
