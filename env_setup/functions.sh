@@ -97,7 +97,7 @@ create_mintcat_network() {
                 --subnet 172.20.0.0/16 \
                 --gateway 172.20.0.1 \
                 --ip-range 172.20.0.0/25 \
-                --aux-address 'ExcludedIPs=172.20.0.2,172.20.0.3' \
+                --aux-address 'ExcludedIPs=172.20.0.10,172.20.0.20' \
                 mintcat
         echo "mintcat 虚拟网络已成功创建。"
 }
