@@ -141,7 +141,6 @@ deploy_service() {
                 -p 86:80 \
                 -v vaultwarden_volume:/data \
                 vaultwarden/server:latest
-
             # 检查容器是否启动成功
             if [ $? -eq 0 ]; then
                 echo "Vaultwarden 服务已部署，访问地址：http://$(get_public_ip):86"
