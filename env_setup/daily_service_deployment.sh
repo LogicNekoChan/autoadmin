@@ -127,5 +127,3 @@ if ! command -v docker compose >/dev/null 2>&1; then
     exit 1
 fi
 
-# 运行主菜单
-daily_service_deployment_menu
