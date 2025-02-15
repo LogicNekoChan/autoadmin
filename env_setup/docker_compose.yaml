@@ -29,19 +29,19 @@ services:
     tty: true
 
   # 文件浏览器
-  filebrowser:
-    image: filebrowser/filebrowser
-    container_name: filebrowser
-    restart: always
-    ports:
-      - "8090:80"
-    volumes:
-      - filebrowser_data:/data
-    environment:
-      - DATA_DIR=/  
-      - TZ=Asia/Shanghai  # 设置时区
-      - USERNAME=admin    # 设置登录用户名
-      - PASSWORD=admin123 # 设置登录密码
+filebrowser:
+  image: filebrowser/filebrowser
+  container_name: filebrowser
+  restart: always
+  ports:
+    - "8090:80"
+  volumes:
+    - /:/data  # 将主机的根目录挂载到容器的 /data 目录
+  environment:
+    - DATA_DIR=/  # 设置容器访问主机根目录的路径
+    - TZ=Asia/Shanghai  # 设置时区
+    - USERNAME=admin    # 设置登录用户名
+    - PASSWORD=admin123 # 设置登录密码
 
   # ChatGPT Web
   chatgpt-web:
