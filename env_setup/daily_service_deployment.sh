@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #### 日常服务部署脚本开始 ####
-#  复制粘贴 daily_service_deployment.sh 的全部内容到这里
+#  复制粘贴 daily_service_deployment.sh 的全部内容到这里
 
 # 定义 docker-compose.yaml 文件的 URL
 DOCKER_COMPOSE_URL="https://raw.githubusercontent.com/LogicNekoChan/autoadmin/refs/heads/main/env_setup/docker_compose.yaml"
@@ -52,37 +52,38 @@ get_services_from_compose() {
 }
 
 get_public_ip() {
-    # 尝试获取IPv4地址
-    public_ip=$(curl -s4 ifconfig.me)
+    # 尝试获取IPv4地址
+    public_ip=$(curl -s4 ifconfig.me)
 
-    # 如果获取不到IPv4地址，再尝试获取IPv6地址
-    if [ -z "$public_ip" ]; then
-        public_ip=$(curl -s6 ifconfig.me)
-    fi
+    # 如果获取不到IPv4地址，再尝试获取IPv6地址
+    if [ -z "$public_ip" ]; then
+        public_ip=$(curl -s6 ifconfig.me)
+    fi
 
-    echo "$public_ip"
+    echo "$public_ip"
 }
 
 # 部署服务函数 (简化版本，移除 case 语句)
 deploy_service() {
-    local service_index=$1
+    local service_index=$1
 
-    # 获取选中的服务名称
-    service_name="${services[$((service_index - 1))]}"
-    echo "您选择的服务是: $service_name"
+    # 获取选中的服务名称
+    service_name="${services[$((service_index - 1))]}"
+    echo "您选择的服务是: $service_name"
 
     if ! command -v docker compose >/dev/null 2>&1; then
         echo "请先安装 Docker Compose。" >&2
         return 1
     fi
 
-    if ! download_docker_compose_config; then
+    docker compose up -d "$service_name"
+    if [ $? -eq 0 ]; then
+        echo "$service_name 服务已部署，访问地址请参考 docker-compose.yaml 文件中的端口配置。"
+    else
+        echo "服务 $service_name 部署失败，请检查 Docker Compose 日志。" >&2
         return 1
     fi
-
-    docker compose up -d "$service_name"
-    echo "$service_name 服务已部署，访问地址请参考 docker-compose.yaml 文件中的端口配置。"
-    pause
+    pause
 }
 
 # 显示服务列表
@@ -102,26 +103,31 @@ show_services_list() {
 
 # 部署服务主函数
 daily_service_deployment_menu() {
-    while true; do
-        clear
-        show_services_list
-        read -p "请输入服务的序号 (或输入 0 退出): " service_choice
+    # 在菜单开始时下载配置文件
+    if ! download_docker_compose_config; then
+        return 1
+    fi
 
-        if [[ "$service_choice" == "0" ]]; then
-            echo "退出部署菜单"
-            break
-        elif [[ "$service_choice" =~ ^[0-9]+$ ]] && [ "$service_choice" -ge 1 ] && [ "$service_choice" -le ${#services[@]} ]; then
-            deploy_service "$service_choice"
-        else
-            echo "无效选择，请重新输入"
-        fi
-        sleep 2
-    done
+    while true; do
+        clear
+        show_services_list
+        read -p "请输入服务的序号 (或输入 0 退出): " service_choice
+
+        if [[ "$service_choice" == "0" ]]; then
+            echo "退出部署菜单"
+            break
+        elif [[ "$service_choice" =~ ^[0-9]+$ ]] && [ "$service_choice" -ge 1 ] && [ "$service_choice" -le ${#services[@]} ]; then
+            deploy_service "$service_choice"
+        else
+            echo "无效选择，请重新输入"
+        fi
+        sleep 2
+    done
 }
 
 # 暂停等待用户按键
 pause() {
-    read -p "按 Enter 键继续..."
+    read -p "按 Enter 键继续..."
 }
 
 # 检查是否安装 docker compose
