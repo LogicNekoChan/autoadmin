@@ -14,8 +14,8 @@ get_container_names() {
     # 下载docker-compose.yaml文件
     curl -s -o docker_compose.yaml https://raw.githubusercontent.com/LogicNekoChan/autoadmin/refs/heads/main/env_setup/docker_compose.yaml
 
-    # 将 YAML 转换为 JSON，然后使用 jq 解析
-    container_names=$(python3 -c 'import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin.read())))' < docker_compose.yaml | jq -r '.services | keys | .[]')
+    # 将 YAML 转换为 JSON，再用 jq 解析服务名称
+    container_names=$(python3 -c 'import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin.read())))' < docker_compose.yaml | jq -r '.services | keys[]')
 
     if [ -z "$container_names" ]; then
         echo "没有找到容器服务!"
@@ -83,3 +83,6 @@ daily_service_deployment_menu() {
 pause() {
     read -p "按 Enter 键继续..."
 }
+
+# 调用主函数
+daily_service_deployment_menu
