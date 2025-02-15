@@ -132,23 +132,6 @@ deploy_service() {
             ;;
 
         "Vaultwarden - 密码管理")
-            # 提示用户输入数据库连接信息
-            echo "请输入数据库连接信息："
-            read -p "数据库地址（默认：localhost）： " DB_HOST
-            DB_HOST=${DB_HOST:-localhost}
-
-            read -p "数据库端口（默认：3306）： " DB_PORT
-            DB_PORT=${DB_PORT:-3306}
-
-            read -p "数据库用户名（默认：root）： " DB_USER
-            DB_USER=${DB_USER:-root}
-
-            read -sp "数据库密码： " DB_PASS
-            echo
-
-            read -p "数据库名称（默认：vaultwarden）： " DB_NAME
-            DB_NAME=${DB_NAME:-vaultwarden}
-
             # 创建卷并映射
             docker volume create vaultwarden_volume
 
@@ -156,7 +139,6 @@ deploy_service() {
             docker run -d \
                 --name vaultwarden \
                 -p 86:80 \
-                -e DATABASE_URL="mysql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME" \
                 -v vaultwarden_volume:/data \
                 vaultwarden/server:latest
 
