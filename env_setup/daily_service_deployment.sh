@@ -14,9 +14,9 @@ get_container_names() {
     # 下载docker-compose.yaml文件
     curl -s -o docker_compose.yaml https://raw.githubusercontent.com/LogicNekoChan/autoadmin/refs/heads/main/env_setup/docker_compose.yaml
 
-    # 使用yq解析YAML文件，提取服务名称
-    container_names=$(yq e '.services | keys | .[]' docker_compose.yaml)
-    
+    # 将 YAML 转换为 JSON，然后使用 jq 解析
+    container_names=$(python3 -c 'import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin.read())))' < docker_compose.yaml | jq -r '.services | keys | .[]')
+
     if [ -z "$container_names" ]; then
         echo "没有找到容器服务!"
         exit 1
@@ -30,7 +30,7 @@ deploy_service() {
     local service_name=$1
 
     # 获取服务的docker-compose配置
-    docker_compose_file=$(yq e ".services.\"$service_name\"" docker_compose.yaml)
+    docker_compose_file=$(python3 -c 'import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin.read())))' < docker_compose.yaml | jq -r ".services.\"$service_name\"")
 
     # 创建临时文件，写入docker-compose配置
     echo "$docker_compose_file" > temp_docker_compose.yml
@@ -83,4 +83,3 @@ daily_service_deployment_menu() {
 pause() {
     read -p "按 Enter 键继续..."
 }
-
