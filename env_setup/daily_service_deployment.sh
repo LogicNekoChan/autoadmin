@@ -95,6 +95,3 @@ daily_service_deployment_menu() {
 pause() {
     read -p "按 Enter 键继续..."
 }
-
-# 主程序
-daily_service_deployment_menu
